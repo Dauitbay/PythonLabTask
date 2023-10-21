@@ -70,7 +70,7 @@ Scraping web page is reddit.com which is dynamic web page(loades content when us
 
 
 ## Authors and acknowledgment
-I am very gratiful to [https://gitlab.com/alexey.bogushevich] and [https://gitlab.com/MaksimShelehItechArt] (Ventionteams developers)  for giving me task to learn more  and helping to finish it by correcting me when needed. Also Taxir's advices also helped me durin developin stage.
+I am very gratiful to [https://gitlab.com/alexey.bogushevich] and [https://gitlab.com/MaksimShelehItechArt] (Ventionteams developers)  for giving me task to learn more  and helping to finish it by correcting me when needed. Also Taxir's advices also helped me during developing stage.
 
 Also PythonTodays lessons were helpful: https://www.youtube.com/@PythonToday
 
