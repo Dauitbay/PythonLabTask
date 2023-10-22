@@ -32,7 +32,7 @@ def get_current_time():
 
 #Writing data to a file:
 def write_to_file(hold_data, cur_time):
-    f = open(f"{cur_time}.txt", "a+")
+    f = open(f"reddit-{cur_time}.txt", "a+")
     f.write('UNIQUE_ID: ' + unique_id())
     a = ";".join(hold_data)
     f.write(a)
@@ -58,7 +58,7 @@ def get_next_url(url):
         result = requests.get(url=url, headers=headers)
         soup_driver = BeautifulSoup(result.text, "lxml")  
         next_url_hold = ""
-        # sleep(randint(1, 2))
+        sleep(randint(1, 2))
         next_url= soup_driver.find('shreddit-app', class_ = "overflow-x-hidden xs:overflow-visible v2 pt-[var(--page-y-padding)]").find("faceplate-partial", attrs={"slot":"load-after"}).get("src")
         next_url_hold = next_url_hold + ("https://www.reddit.com" + str(next_url))
 
@@ -102,7 +102,7 @@ def get_post_data(url_1:str, number_of_posts:int, file_name: str):
         #Connection check:
         url_connection_check(post_request, str(post_request))
         #Logging info:
-        logger.info('loaded {}'.format(k))
+        logger.info('loaded post url {}'.format(k))
         soup_post = BeautifulSoup(post_request.text, "lxml")
         check_for_mature_content = soup_post.find('a', class_ = 'author-name')
         if check_for_mature_content == None:
@@ -139,10 +139,9 @@ def get_post_data(url_1:str, number_of_posts:int, file_name: str):
         #Exiting function after collecting required amount of data: 
         if number_of_posts == 0:
             print(f"Number of posts needed to get {number_of_posts}....")
-            print("Finished collectind data !!!")
+            print("Finished collecting data !!!")
             return number_of_posts
         hold_d.clear()
-    #Connection check:
     logger.info('loaded {}'.format(url_1))
     return number_of_posts
     
@@ -155,7 +154,7 @@ def main():
     main_url = "https://www.reddit.com/r/popular/top/?t=month"
 
     # Setting number_of_posts to GET from reddit.com:
-    number_of_posts = 11
+    number_of_posts = 100
     while True:
         returned_number_of_posts = get_post_data(main_url, number_of_posts, str(start_time))
         if not returned_number_of_posts:
@@ -163,7 +162,6 @@ def main():
         number_of_posts = returned_number_of_posts
         n_url = get_next_url(main_url)
         main_url = n_url
-        # print(f"Getting next {page_count}-page with posts in it....")
 
 if __name__ == '__main__':
     main()
