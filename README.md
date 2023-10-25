@@ -59,7 +59,7 @@ import logging
 import uuid
 
 ## How code works
-Main file is reddit_main.py 
+Main file is main_reddit.py 
 Scraping web page is reddit.com which is dynamic web page(loades content when user scrools).
 
 1-step: In main function we can give number of posts we need in varible called: number_of_posts
