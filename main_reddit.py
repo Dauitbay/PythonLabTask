@@ -50,14 +50,6 @@ def write_to_file(user_data, cur_time):
         file.write(a)
         file.write("\n")
 
-#Checking connection ststus of post url requests:
-def url_connection_status(post_request, url_name: str, status_print="- Request successful"):
-    if post_request.status_code != 200:
-        print(f"Failed to connect {status_print}:" + url_name)
-        exit()
-    else:
-        print(post_request.status_code, status_print)
-
 def get_next_url(url):
 
     try:
@@ -93,8 +85,6 @@ def get_post_data(url_1:str, number_of_posts:int, file_name: str):
         # Getting post URL and sending request there:
         k = f"https://www.reddit.com{k.find('a', class_ = 'absolute inset-0').get('href')}"
         post_request = requests.get(url=k, headers=HEADERS)
-        #Connection ststus check:
-        url_connection_status(post_request, str(post_request))
         #Logging info:
         logger.info('loaded post url {}'.format(k))
         soup_post = BeautifulSoup(post_request.text, "lxml")
@@ -106,8 +96,6 @@ def get_post_data(url_1:str, number_of_posts:int, file_name: str):
         # Getting  post's author's URL and sending request there:
         post_author_profile_url = f"https://www.reddit.com{soup_post.find('a', class_ = 'author-name').get('href')}"       
         author_profile_request = requests.get(url=post_author_profile_url, headers=HEADERS)
-        #Connection status check:
-        url_connection_status(author_profile_request, str(author_profile_request), "- Author_profile_request")
         soup_author_profile = BeautifulSoup(author_profile_request.text, "lxml")
         check_for_blocked_account = soup_author_profile.find("faceplate-date")
         if check_for_blocked_account == None:
