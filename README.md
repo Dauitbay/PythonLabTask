@@ -25,15 +25,20 @@ From this web page we get:
 
 -post category
 
-and save them to file by giving unique_ID to a file with name reddit-YYYYMMDDHHmm.txt
-Every time we run code it will delite previus reddit-YYYYMMDDHHmm.txt
+and save them to file by giving unique_ID to users we collect from web page with file name reddit-YYYYMMDDHHmm.txt .
+Every time we run code it will delete previus reddit-YYYYMMDDHHmm.txt and my_logfile.log files.
 
 ## Setup required to this project
 Install the dependencies:
 
-$ python -m pip install beautifulsoup4
+Create virtual env(link to example of commands):
+https://docs.python.org/3/library/venv.html
 
-$ python -m pip install requests
+Command to install libs from requirements.txt file:
+Use the pip install -r requirements.txt command to install all of the Python modules and packages listed in requirements.txt file.
+
+To deactivate your virtual environment, simply run the following code in the terminal:
+deactivate
 
 ## Requred imports
 
@@ -53,9 +58,8 @@ import logging
 
 import uuid
 
-
 ## How code works
-Main file is reddit_main.py 
+Main file is main_reddit.py 
 Scraping web page is reddit.com which is dynamic web page(loades content when user scrools).
 
 1-step: In main function we can give number of posts we need in varible called: number_of_posts
@@ -64,6 +68,6 @@ Scraping web page is reddit.com which is dynamic web page(loades content when us
 
 3-step: It will get url to next page which is located in CSS: faceplate-partial slot="load-after" where url located in [src="/svc/shreddit/feeds/popular-feed......] and will continue getting data we need.
 
-4-step: While getting data we will write them to file with unique ID which is created with date and time we started code. Also we create log file to check saving them to file called: my_logfile.log.
+4-step: While getting users data we will write them to file reddit-YYYYMMDDHHmm.txt with unique ID. Also we create log file and saving logging info to file called: my_logfile.log.
 
-5- step: Every time we RUN our code it will delite existing log and saved post files from previus run.
+5- step: Every time we RUN our code it will delete existing log and saved reddit-YYYYMMDDHHmm.txt from previus run.
