@@ -25,15 +25,20 @@ From this web page we get:
 
 -post category
 
-and save them to file by giving unique_ID to a file with name reddit-YYYYMMDDHHmm.txt
-Every time we run code it will delite previus reddit-YYYYMMDDHHmm.txt
+and save them to file by giving unique_ID to users we collect from web page with file name reddit-YYYYMMDDHHmm.txt .
+Every time we run code it will delete previus reddit-YYYYMMDDHHmm.txt and my_logfile.log files.
 
 ## Setup required to this project
 Install the dependencies:
 
-$ python -m pip install beautifulsoup4
+Create virtual env(link to example of commands):
+https://docs.python.org/3/library/venv.html
 
-$ python -m pip install requests
+Command to install libs from requirements.txt file:
+Use the pip install -r requirements.txt command to install all of the Python modules and packages listed in requirements.txt file.
+
+To deactivate your virtual environment, simply run the following code in the terminal:
+deactivate
 
 ## Requred imports
 
@@ -67,23 +72,3 @@ Scraping web page is reddit.com which is dynamic web page(loades content when us
 4-step: While getting data we will write them to file with unique ID which is created with date and time we started code. Also we create log file to check saving them to file called: my_logfile.log.
 
 5- step: Every time we RUN our code it will delite existing log and saved post files from previus run.
-
-
-## Authors and acknowledgment
-I am very gratiful to [https://gitlab.com/alexey.bogushevich] and [https://gitlab.com/MaksimShelehItechArt] (Ventionteams developers)  for giving me task to learn more  and helping to finish it by correcting me when needed. Also [Takhir Baiheryieu
-@takhir.baiheryieu] advices also helped me during developing stage.
-
-Also PythonTodays lessons were helpful: https://www.youtube.com/@PythonToday
-
-## Contributing
-If you have a suggestion that would make this better, please leave your comments.
-
-## Support
-Contact me if you have questions.
-
-LinkedIn: www.linkedin.com/in/dawitsarsenbaev
-
-Email: dawitsarsenbaev@gmail.com
-
-## Project status
-Needs review
