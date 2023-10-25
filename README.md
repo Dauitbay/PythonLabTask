@@ -68,6 +68,6 @@ Scraping web page is reddit.com which is dynamic web page(loades content when us
 
 3-step: It will get url to next page which is located in CSS: faceplate-partial slot="load-after" where url located in [src="/svc/shreddit/feeds/popular-feed......] and will continue getting data we need.
 
-4-step: While getting data we will write them to file with unique ID which is created with date and time we started code. Also we create log file to check saving them to file called: my_logfile.log.
+4-step: While getting users data we will write them to file reddit-YYYYMMDDHHmm.txt with unique ID. Also we create log file and saving logging info to file called: my_logfile.log.
 
-5- step: Every time we RUN our code it will delite existing log and saved post files from previus run.
+5- step: Every time we RUN our code it will delete existing log and saved reddit-YYYYMMDDHHmm.txt from previus run.
