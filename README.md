@@ -58,7 +58,6 @@ import logging
 
 import uuid
 
-
 ## How code works
 Main file is reddit_main.py 
 Scraping web page is reddit.com which is dynamic web page(loades content when user scrools).
