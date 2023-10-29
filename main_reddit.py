@@ -26,6 +26,7 @@ import requests
 from bs4 import BeautifulSoup
 
 
+# Constants
 HEADERS = {
     "Accept": "text/html,application/xhtml+xml,application/xml;\
         q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,\
@@ -36,7 +37,6 @@ HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, \
         like Gecko) Chrome/117.0.0.0 Safari/537.36",
 }
-# Constants
 HTML_PROCESSER = "lxml"
 SHREDDIT_APP = "shreddit-app"
 SHREDDIT_POST = "shreddit-post"
@@ -57,9 +57,9 @@ logger = logging.getLogger("scraper")
 logger.setLevel(logging.INFO)
 
 
-def unique_id():
-    rand_id = uuid.uuid4().hex
-    return rand_id
+def generate_unique_id():
+    unique_id = uuid.uuid1().hex
+    return unique_id[:32]
 
 
 def delete_existing_file():
@@ -76,7 +76,7 @@ def get_current_time():
 
 def write_to_file(user_data, cur_time):
     with open(f"reddit-{cur_time}.txt", "a+") as file:
-        file.write("UNIQUE_ID: " + unique_id())
+        file.write("UNIQUE_ID: " + generate_unique_id())
         joined_data = ";".join(user_data)
         file.write(joined_data)
         file.write("\n")
