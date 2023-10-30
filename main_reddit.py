@@ -98,7 +98,7 @@ def get_next_url(url: str):
             REDDIT_WEBPAGE_ADDRESS + str(find_next_url)
         )
     except requests.exceptions.Timeout:
-        print("TIMED OUT doing request to next page")
+        logger.info("TIMED OUT doing request to next page")
     return create_next_url
 
 
@@ -122,7 +122,7 @@ def get_remaining_posts_num(posts_url: str, number_of_posts: int, file_name: str
         temp_hold_user_data.append(" post_comment_number: " + user_post_data["comment-count"])
         temp_hold_user_data.append(" number_of_votes: " + user_post_data["score"])
         temp_hold_user_data.append(" post_type: " + user_post_data["post-type"])
-        post_url_path = f"https://www.reddit.com{user_post_data.find('a', class_ ='absolute inset-0').get('href')}"
+        post_url_path = REDDIT_WEBPAGE_ADDRESS + user_post_data.find('a', class_ ='absolute inset-0').get('href')
         try:
             post_request = requests.get(url=post_url_path, headers=HEADERS, timeout=10)
         except requests.exceptions.Timeout:
@@ -132,13 +132,13 @@ def get_remaining_posts_num(posts_url: str, number_of_posts: int, file_name: str
         if is_age_and_user_block_limit(soup_post.find("a", class_="author-name")):
             temp_hold_user_data.clear()
             continue
-        post_author_profile_url = f"https://www.reddit.com{soup_post.find('a', class_ = 'author-name').get('href')}"
+        post_author_profile_url = REDDIT_WEBPAGE_ADDRESS + soup_post.find('a', class_ = 'author-name').get('href')
         try:
             author_profile_request = requests.get(
                 url=post_author_profile_url, headers=HEADERS, timeout=10
             )
         except requests.exceptions.Timeout:
-            print("TIMED OUT doing post_author_profile_request")
+            logger.info("TIMED OUT doing post_author_profile_request")
         soup_author_profile = BeautifulSoup(author_profile_request.text, HTML_PROCESSER)
         if is_age_and_user_block_limit(soup_author_profile.find("faceplate-date")):
             temp_hold_user_data.clear()
@@ -175,8 +175,8 @@ def get_remaining_posts_num(posts_url: str, number_of_posts: int, file_name: str
 
 def main():
     #If log file is open close it
-    if os.path.isfile(LOG_FILE_NAME):
-        logging.shutdown()
+    # if os.path.isfile(LOG_FILE_NAME):
+    #     logging.shutdown()
 
     delete_reddit_and_mylog_file()
     start_time = get_current_time()
