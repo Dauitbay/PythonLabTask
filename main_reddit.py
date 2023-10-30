@@ -46,6 +46,7 @@ SOUP_FIND_CLASS_NAME = (
     "overflow-x-hidden xs:overflow-visible v2 pt-[var(--page-y-padding)]")
 GET_POST_DATA_FINDALL_CLASS = "block relative cursor-pointer bg-neutral-background focus-within:bg-neutral-background-hover hover:bg-neutral-background-hover xs:rounded-[16px] p-md my-2xs nd:visible"
 LOG_FILE_NAME = "my_logfile.log"
+NUMBER_OF_POSTS_NEEDED_TO_GET = "Number of posts needed to get --> "
 
 logging.basicConfig(
     level=logging.INFO,
@@ -81,7 +82,7 @@ def write_to_file(user_data, cur_time):
         file.write(joined_data)
         file.write("\n")
 
-# Finding URL of next page and sending to get_post_data func. through main func.
+# Finding URL of next page and sending to get_remaining_posts_num func. through main func.
 def get_next_url(url: str):
     try:
         next_page_req = requests.get(url=url, headers=HEADERS, timeout=10)
@@ -102,16 +103,18 @@ def get_next_url(url: str):
     return create_next_url
 
 
-def is_age_and_user_block_limit(is_age_and_user_block: str):
+def is_age_or_user_blocked(is_age_and_user_block: str):
     return is_age_and_user_block is None
 
 
 #Gathering required data from posts and returning num of posts
 def get_remaining_posts_num(posts_url: str, number_of_posts: int, file_name: str):
+    
     try:
         result = requests.get(url=posts_url, headers=HEADERS, timeout=10)
     except requests.exceptions.Timeout:
         logger.info("TIMED OUT doing posts_url_request")
+    
     soup = BeautifulSoup(result.text, HTML_PROCESSER)
     user_info = soup.find(SHREDDIT_APP, class_=SOUP_FIND_CLASS_NAME)
     temp_hold_user_data = []
@@ -129,18 +132,21 @@ def get_remaining_posts_num(posts_url: str, number_of_posts: int, file_name: str
              logger.info("TIMED OUT doing post_request")
         logger.info("loaded post url {}".format(post_url_path))
         soup_post = BeautifulSoup(post_request.text, HTML_PROCESSER)
-        if is_age_and_user_block_limit(soup_post.find("a", class_="author-name")):
+
+        if is_age_or_user_blocked(soup_post.find("a", class_="author-name")):
             temp_hold_user_data.clear()
             continue
+       
         post_author_profile_url = REDDIT_WEBPAGE_ADDRESS + soup_post.find('a', class_ = 'author-name').get('href')
+        
         try:
             author_profile_request = requests.get(
-                url=post_author_profile_url, headers=HEADERS, timeout=10
-            )
+                url=post_author_profile_url, headers=HEADERS, timeout=10)
         except requests.exceptions.Timeout:
             logger.info("TIMED OUT doing post_author_profile_request")
+        
         soup_author_profile = BeautifulSoup(author_profile_request.text, HTML_PROCESSER)
-        if is_age_and_user_block_limit(soup_author_profile.find("faceplate-date")):
+        if is_age_or_user_blocked(soup_author_profile.find("faceplate-date")):
             temp_hold_user_data.clear()
             continue
 
@@ -152,8 +158,7 @@ def get_remaining_posts_num(posts_url: str, number_of_posts: int, file_name: str
         ).get("number")
         temp_hold_user_data.append(" post_karma: " + author_post_karma)
         find_post_karma = soup_author_profile.find_all(
-            "div", class_="flex flex-col min-w-0"
-        )
+            "div", class_="flex flex-col min-w-0")
         for karma in find_post_karma:
             author_comment_karma = karma.find(
                 "faceplate-number", class_="font-semibold text-14"
@@ -161,13 +166,13 @@ def get_remaining_posts_num(posts_url: str, number_of_posts: int, file_name: str
             temp_hold_user_data.append(" comment_karma: " + author_comment_karma)
             break
         temp_hold_user_data = list(dict.fromkeys(temp_hold_user_data))
-        print(f"Number of posts needed to get {number_of_posts}....")
+        print(NUMBER_OF_POSTS_NEEDED_TO_GET  + str(number_of_posts))
         number_of_posts -= 1
         write_to_file(temp_hold_user_data, file_name)
 
         # Exiting function after collecting required amount of data:
         if number_of_posts == 0:
-            print(f"Number of posts needed to get {number_of_posts}")
+            print(NUMBER_OF_POSTS_NEEDED_TO_GET  + str(number_of_posts))
             return number_of_posts
         temp_hold_user_data.clear()
     return number_of_posts
@@ -175,8 +180,8 @@ def get_remaining_posts_num(posts_url: str, number_of_posts: int, file_name: str
 
 def main():
     #If log file is open close it
-    # if os.path.isfile(LOG_FILE_NAME):
-    #     logging.shutdown()
+    if os.path.isfile(LOG_FILE_NAME):
+        logging.shutdown()
 
     delete_reddit_and_mylog_file()
     start_time = get_current_time()
@@ -184,8 +189,7 @@ def main():
     number_of_posts = 100
     while True:
         get_number_of_posts = get_remaining_posts_num(
-            main_url, number_of_posts, start_time
-        )
+            main_url, number_of_posts, start_time)
         if not get_number_of_posts:
             sys.exit("Finished!!!")
         number_of_posts = get_number_of_posts
