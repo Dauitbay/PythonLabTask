@@ -62,7 +62,7 @@ def generate_unique_id():
     return unique_id[:32]
 
 
-def delete_existing_file():
+def delete_reddit_and_mylog_file():
     for fname in os.listdir("."):
         if fname.startswith(("reddit-", "my_logfile")):
             os.remove(fname)
@@ -88,7 +88,7 @@ def get_next_url(url: str):
         logger.info("loaded next pages url {}".format(url))
         next_page_soup = BeautifulSoup(next_page_req.text, HTML_PROCESSER)
         create_next_url = ""
-        sleep(randint(1, 2))
+        sleep(randint(0, 1))
         find_next_url = (
             next_page_soup.find(SHREDDIT_APP, class_=SOUP_FIND_CLASS_NAME)
             .find("faceplate-partial", attrs={"slot": "load-after"})
@@ -101,33 +101,42 @@ def get_next_url(url: str):
         print("TIMED OUT doing request to next page")
     return create_next_url
 
-#Gathering required data from posts
-def get_post_data(posts_url: str, number_of_posts: int, file_name: str):
+
+def is_age_and_user_block_limit(is_age_and_user_block: str):
+    if is_age_and_user_block is None:
+        return True
+    else:
+        return False
+
+
+#Gathering required data from posts and returning num of posts
+def collect_return_posts_num(posts_url: str, number_of_posts: int, file_name: str):
     try:
         result = requests.get(url=posts_url, headers=HEADERS, timeout=10)
     except requests.exceptions.Timeout:
-        print("TIMED OUT doing posts_url_request")
+        logger.info("TIMED OUT doing posts_url_request")
     soup = BeautifulSoup(result.text, HTML_PROCESSER)
     user_info = soup.find(SHREDDIT_APP, class_=SOUP_FIND_CLASS_NAME)
     temp_hold_user_data = []
-    for k in user_info.find_all(SHREDDIT_POST, class_=GET_POST_DATA_FINDALL_CLASS):
-        temp_hold_user_data.append(" post_URL: " + k["permalink"])
-        temp_hold_user_data.append(" username: " + k["author"])
-        temp_hold_user_data.append(" post_date: " + k["created-timestamp"])
-        temp_hold_user_data.append(" post_comment_number: " + k["comment-count"])
-        temp_hold_user_data.append(" number_of_votes: " + k["score"])
-        temp_hold_user_data.append(" post_type: " + k["post-type"])
+    for user_post_data in user_info.find_all(SHREDDIT_POST, class_=GET_POST_DATA_FINDALL_CLASS):
+        temp_hold_user_data.append(" post_URL: " + user_post_data["permalink"])
+        temp_hold_user_data.append(" username: " + user_post_data["author"])
+        temp_hold_user_data.append(" post_date: " + user_post_data["created-timestamp"])
+        temp_hold_user_data.append(" post_comment_number: " + user_post_data["comment-count"])
+        temp_hold_user_data.append(" number_of_votes: " + user_post_data["score"])
+        temp_hold_user_data.append(" post_type: " + user_post_data["post-type"])
         # Getting post URL and sending request there:
-        k = f"https://www.reddit.com{k.find('a', class_ ='absolute inset-0').get('href')}"
+        find_next_url = f"https://www.reddit.com{user_post_data.find('a', class_ ='absolute inset-0').get('href')}"
         try:
-            post_request = requests.get(url=k, headers=HEADERS, timeout=10)
+            post_request = requests.get(url=find_next_url, headers=HEADERS, timeout=10)
         except requests.exceptions.Timeout:
-            print("TIMED OUT doing post_request")
-        logger.info("loaded post url {}".format(k))
+             logger.info("TIMED OUT doing post_request")
+        logger.info("loaded post url {}".format(find_next_url))
         soup_post = BeautifulSoup(post_request.text, HTML_PROCESSER)
         # IF web page has age restriction to some contents
-        if_age_limit = soup_post.find("a", class_="author-name")
-        if if_age_limit is None:
+        is_age_limit = soup_post.find("a", class_="author-name")
+       
+        if is_age_and_user_block_limit(is_age_limit):
             temp_hold_user_data.clear()
             continue
         # Getting  post's author's URL and sending request there:
@@ -141,7 +150,7 @@ def get_post_data(posts_url: str, number_of_posts: int, file_name: str):
         soup_author_profile = BeautifulSoup(author_profile_request.text, HTML_PROCESSER)
         check_for_blocked_account = soup_author_profile.find("faceplate-date")
         #If user is BLOCKED by web site or DELETED
-        if check_for_blocked_account is None:
+        if is_age_and_user_block_limit(check_for_blocked_account):
             temp_hold_user_data.clear()
             continue
         # Getting "user_cake_day","post_karma" and "comment_karma" from post's authors profile:
@@ -178,14 +187,13 @@ def main():
     if os.path.isfile(LOG_FILE_NAME):
         logging.shutdown()
 
-    delete_existing_file()
+    delete_reddit_and_mylog_file()
     start_time = get_current_time()
     main_url = MAIN_URL
-    # Setting number_of_posts to GET :
     number_of_posts = 100
     while True:
-        returned_number_of_posts = get_post_data(
-            main_url, number_of_posts, str(start_time)
+        returned_number_of_posts = collect_return_posts_num(
+            main_url, number_of_posts, start_time
         )
         if not returned_number_of_posts:
             sys.exit("Finished!!!")
