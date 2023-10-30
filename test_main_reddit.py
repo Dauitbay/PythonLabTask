@@ -4,7 +4,7 @@ import pytest
 from unittest.mock import  patch
 import requests
 import validators
-from main_reddit import delete_reddit_and_mylog_file, get_current_time, generate_unique_id, get_next_url, collect_return_posts_num
+from main_reddit import delete_reddit_and_mylog_file, get_current_time, generate_unique_id, get_next_url, get_remaining_posts_num
 from main_reddit import MAIN_URL, HEADERS
 
 # Constants for testing
@@ -76,12 +76,12 @@ def test_get_post_data_timeout():
     with patch("requests.get", side_effect=requests.exceptions.Timeout("Request timed out")):
         with pytest.raises(requests.exceptions.Timeout):
             result = requests.get(url=MAIN_URL, headers=HEADERS, timeout=10)
-            collect_return_posts_num(REDDIT_WEBPAGE_ADDRESS, 10, FILE_NAME)
+            get_remaining_posts_num(REDDIT_WEBPAGE_ADDRESS, 10, FILE_NAME)
 
 
 def test_get_post_data_no_timeout():
     result = requests.get(url=MAIN_URL, headers=HEADERS, timeout=10)
-    post_result = collect_return_posts_num(MAIN_URL, 1, FILE_NAME)
+    post_result = get_remaining_posts_num(MAIN_URL, 1, FILE_NAME)
     # Assuming one iteration reduces number_of_posts by 1
     assert post_result == 0  
     delete_reddit_and_mylog_file()
