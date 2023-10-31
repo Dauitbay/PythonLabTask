@@ -27,7 +27,7 @@ from bs4 import BeautifulSoup
 
 
 # Constants
-HEADERS = {
+REQUEST_HEADERS = {
     "Accept": "text/html,application/xhtml+xml,application/xml;\
         q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,\
             application/signed-exchange;v=b3;q=0.7",
@@ -37,7 +37,7 @@ HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, \
         like Gecko) Chrome/117.0.0.0 Safari/537.36",
 }
-HTML_PROCESSER = "lxml"
+HTML_PARSER = "lxml"
 SHREDDIT_APP = "shreddit-app"
 SHREDDIT_POST = "shreddit-post"
 MAIN_URL = "https://www.reddit.com/r/popular/top/?t=month"
@@ -48,6 +48,7 @@ GET_POST_DATA_FINDALL_CLASS = "block relative cursor-pointer bg-neutral-backgrou
 LOG_FILE_NAME = "my_logfile.log"
 NUMBER_OF_POSTS_NEEDED_TO_GET = "Number of posts needed to get --> "
 
+
 logging.basicConfig(
     level=logging.INFO,
     filename=LOG_FILE_NAME,
@@ -56,7 +57,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger("scraper")
 logger.setLevel(logging.INFO)
-
 
 def generate_unique_id():
     unique_id = uuid.uuid1().hex
@@ -71,8 +71,7 @@ def delete_reddit_and_mylog_file():
 
 def get_current_time():
     now = datetime.now()
-    generate_time = now.strftime("%Y_%m_%d_%H_%M")
-    return generate_time
+    return now.strftime("%Y_%m_%d_%H_%M")
 
 
 def write_to_file(user_data, cur_time):
@@ -85,9 +84,9 @@ def write_to_file(user_data, cur_time):
 # Finding URL of next page and sending to get_remaining_posts_num func. through main func.
 def get_next_url(url: str):
     try:
-        next_page_req = requests.get(url=url, headers=HEADERS, timeout=10)
+        next_page_req = requests.get(url=url, headers=REQUEST_HEADERS, timeout=10)
         logger.info("loaded next pages url {}".format(url))
-        next_page_soup = BeautifulSoup(next_page_req.text, HTML_PROCESSER)
+        next_page_soup = BeautifulSoup(next_page_req.text, HTML_PARSER)
         create_next_url = ""
         sleep(randint(0, 1))
         find_next_url = (
@@ -103,21 +102,37 @@ def get_next_url(url: str):
     return create_next_url
 
 
-def is_age_or_user_blocked(is_age_and_user_block: str):
-    return is_age_and_user_block is None
+def does_post_has_restrictions(soup: BeautifulSoup):
+    author_link = soup.find('a', class_='author-name')
+    if author_link is None:
+        logger.info("Age restriction. Could not access the author's profile.")
+        return False
+    post_author_profile_url = REDDIT_WEBPAGE_ADDRESS + author_link.get('href')
+    try:
+        author_profile_request = requests.get(url=post_author_profile_url, headers=REQUEST_HEADERS, timeout=10)
+    except requests.exceptions.Timeout:
+        logger.error("TIMED OUT doing post_author_profile_request")
+        return False
+    soup_author_profile = BeautifulSoup(author_profile_request.text, HTML_PARSER)
+    faceplate_date = soup_author_profile.find("faceplate-date")
+    if faceplate_date is None:
+        logger.info("Author is BLOCKED. Could not access the author's profile.")
+        return False
+    return True
 
 
 #Gathering required data from posts and returning num of posts
 def get_remaining_posts_num(posts_url: str, number_of_posts: int, file_name: str):
-    
     try:
-        result = requests.get(url=posts_url, headers=HEADERS, timeout=10)
+        result = requests.get(url=posts_url, headers=REQUEST_HEADERS, timeout=10)
     except requests.exceptions.Timeout:
-        logger.info("TIMED OUT doing posts_url_request")
-    
-    soup = BeautifulSoup(result.text, HTML_PROCESSER)
+        logger.error("TIMED OUT doing posts_url_request")
+        return number_of_posts
+
+    soup = BeautifulSoup(result.text, HTML_PARSER)
     user_info = soup.find(SHREDDIT_APP, class_=SOUP_FIND_CLASS_NAME)
     temp_hold_user_data = []
+
     for user_post_data in user_info.find_all(SHREDDIT_POST, class_=GET_POST_DATA_FINDALL_CLASS):
         temp_hold_user_data.append(" post_URL: " + user_post_data["permalink"])
         temp_hold_user_data.append(" username: " + user_post_data["author"])
@@ -125,61 +140,56 @@ def get_remaining_posts_num(posts_url: str, number_of_posts: int, file_name: str
         temp_hold_user_data.append(" post_comment_number: " + user_post_data["comment-count"])
         temp_hold_user_data.append(" number_of_votes: " + user_post_data["score"])
         temp_hold_user_data.append(" post_type: " + user_post_data["post-type"])
-        post_url_path = REDDIT_WEBPAGE_ADDRESS + user_post_data.find('a', class_ ='absolute inset-0').get('href')
+        post_url_path = REDDIT_WEBPAGE_ADDRESS + user_post_data.find('a', class_='absolute inset-0').get('href')
         try:
-            post_request = requests.get(url=post_url_path, headers=HEADERS, timeout=10)
+            post_request = requests.get(url=post_url_path, headers=REQUEST_HEADERS, timeout=10)
         except requests.exceptions.Timeout:
-             logger.info("TIMED OUT doing post_request")
-        logger.info("loaded post url {}".format(post_url_path))
-        soup_post = BeautifulSoup(post_request.text, HTML_PROCESSER)
-
-        if is_age_or_user_blocked(soup_post.find("a", class_="author-name")):
-            temp_hold_user_data.clear()
+            logger.error("TIMED OUT doing post_request")
             continue
-       
-        post_author_profile_url = REDDIT_WEBPAGE_ADDRESS + soup_post.find('a', class_ = 'author-name').get('href')
-        
-        try:
-            author_profile_request = requests.get(
-                url=post_author_profile_url, headers=HEADERS, timeout=10)
-        except requests.exceptions.Timeout:
-            logger.info("TIMED OUT doing post_author_profile_request")
-        
-        soup_author_profile = BeautifulSoup(author_profile_request.text, HTML_PROCESSER)
-        if is_age_or_user_blocked(soup_author_profile.find("faceplate-date")):
-            temp_hold_user_data.clear()
+        logger.info("Loaded post URL: {}".format(post_url_path))
+        soup_post = BeautifulSoup(post_request.text, HTML_PARSER)
+
+        if not does_post_has_restrictions(soup_post):
             continue
 
-        # Getting "user_cake_day","post_karma" and "comment_karma" from post's authors profile:
+        post_author_profile_url = REDDIT_WEBPAGE_ADDRESS + soup_post.find('a', class_='author-name').get('href')
+        try:
+            author_profile_request = requests.get(url=post_author_profile_url, headers=REQUEST_HEADERS, timeout=10)
+        except requests.exceptions.Timeout:
+            logger.error("TIMED OUT doing post_author_profile_request")
+            continue
+        logger.info("Loaded post author profile URL: {}".format(post_author_profile_url))
+        soup_author_profile = BeautifulSoup(author_profile_request.text, HTML_PARSER)
+
+        if does_post_has_restrictions(soup_author_profile):
+            continue
+
+        # Getting "user_cake_day","post_karma" and "comment_karma" from post's author's profile:
         cake_day = soup_author_profile.find("faceplate-date").get("ts")
         temp_hold_user_data.append(" user_cake_day: " + str(cake_day))
-        author_post_karma = soup_author_profile.find(
-            "faceplate-number", class_="font-semibold text-14"
-        ).get("number")
+        author_post_karma = soup_author_profile.find("faceplate-number", class_="font-semibold text-14").get("number")
         temp_hold_user_data.append(" post_karma: " + author_post_karma)
-        find_post_karma = soup_author_profile.find_all(
-            "div", class_="flex flex-col min-w-0")
+        find_post_karma = soup_author_profile.find_all("div", class_="flex flex-col min-w-0")
         for karma in find_post_karma:
-            author_comment_karma = karma.find(
-                "faceplate-number", class_="font-semibold text-14"
-            ).get("number")
+            author_comment_karma = karma.find("faceplate-number", class_="font-semibold text-14").get("number")
             temp_hold_user_data.append(" comment_karma: " + author_comment_karma)
             break
         temp_hold_user_data = list(dict.fromkeys(temp_hold_user_data))
-        print(NUMBER_OF_POSTS_NEEDED_TO_GET  + str(number_of_posts))
+        logger.info(NUMBER_OF_POSTS_NEEDED_TO_GET  + str(number_of_posts))
         number_of_posts -= 1
         write_to_file(temp_hold_user_data, file_name)
 
-        # Exiting function after collecting required amount of data:
+        # Exiting function after collecting the required amount of data:
         if number_of_posts == 0:
-            print(NUMBER_OF_POSTS_NEEDED_TO_GET  + str(number_of_posts))
+            logger.info(NUMBER_OF_POSTS_NEEDED_TO_GET  + str(number_of_posts))
             return number_of_posts
         temp_hold_user_data.clear()
+
     return number_of_posts
 
 
 def main():
-    #If log file is open close it
+    # If a log file is open, close it
     if os.path.isfile(LOG_FILE_NAME):
         logging.shutdown()
 
@@ -188,12 +198,14 @@ def main():
     main_url = MAIN_URL
     number_of_posts = 100
     while True:
-        get_number_of_posts = get_remaining_posts_num(
-            main_url, number_of_posts, start_time)
+        get_number_of_posts = get_remaining_posts_num(main_url, number_of_posts, start_time)
         if not get_number_of_posts:
             sys.exit("Finished!!!")
         number_of_posts = get_number_of_posts
         next_url = get_next_url(main_url)
+
+        if next_url is None:
+            sys.exit("No more pages to scrape.")
         main_url = next_url
 
 

@@ -4,8 +4,9 @@ import pytest
 from unittest.mock import  patch
 import requests
 import validators
-from main_reddit import delete_reddit_and_mylog_file, get_current_time, generate_unique_id, get_next_url, get_remaining_posts_num
-from main_reddit import MAIN_URL, HEADERS
+from bs4 import BeautifulSoup
+from main_reddit import does_post_has_restrictions, delete_reddit_and_mylog_file, get_current_time, generate_unique_id, get_next_url, get_remaining_posts_num
+from main_reddit import MAIN_URL, REQUEST_HEADERS
 
 # Constants for testing
 FILE_NAME = "reddit-test_YYMMddHHMM.txt"
@@ -75,17 +76,41 @@ def test_get_next_url_response():
 def test_get_post_data_timeout(): 
     with patch("requests.get", side_effect=requests.exceptions.Timeout("Request timed out")):
         with pytest.raises(requests.exceptions.Timeout):
-            result = requests.get(url=MAIN_URL, headers=HEADERS, timeout=10)
+            result = requests.get(url=MAIN_URL, headers=REQUEST_HEADERS, timeout=10)
             get_remaining_posts_num(REDDIT_WEBPAGE_ADDRESS, 10, FILE_NAME)
 
 
 def test_get_post_data_no_timeout():
-    result = requests.get(url=MAIN_URL, headers=HEADERS, timeout=10)
+    result = requests.get(url=MAIN_URL, headers=REQUEST_HEADERS, timeout=10)
     post_result = get_remaining_posts_num(MAIN_URL, 1, FILE_NAME)
     # Assuming one iteration reduces number_of_posts by 1
     assert post_result == 0  
     delete_reddit_and_mylog_file()
 
+
+sample_html_with_author = """
+<html>
+    <a class="author-name" href="/user/test_author">Test Author</a>
+</html>
+"""
+
+sample_html_with_faceplate_date = """
+<html>
+    <div class="faceplate-date">Sample Date</div>
+</html>
+"""
+
+def test_does_post_has_restrictions_author_and_date_present():
+    soup = BeautifulSoup(sample_html_with_author + sample_html_with_faceplate_date, "html.parser")
+    assert does_post_has_restrictions(soup) == True
+
+def test_does_post_has_restrictions_author_missing():
+    soup = BeautifulSoup(sample_html_with_faceplate_date, "html.parser")
+    assert does_post_has_restrictions(soup) == False
+
+def test_does_post_has_restrictions_date_missing():
+    soup = BeautifulSoup(sample_html_with_author, "html.parser")
+    assert does_post_has_restrictions(soup) == False
 
 if __name__ == "__main__":
     pytest.main()
