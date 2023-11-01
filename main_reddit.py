@@ -76,7 +76,7 @@ def get_current_time():
 
 def write_to_file(user_data, cur_time):
     with open(f"reddit-{cur_time}.txt", "a+") as file:
-        file.write("UNIQUE_ID: " + generate_unique_id())
+        file.write(generate_unique_id() + ";")
         joined_data = ";".join(user_data)
         file.write(joined_data)
         file.write("\n")
@@ -121,7 +121,7 @@ def does_post_has_restrictions(soup: BeautifulSoup):
     return True
 
 
-#Gathering required data from posts and returning num of posts
+#Gathering required data from posts and returning num_of_posts
 def get_remaining_posts_num(posts_url: str, number_of_posts: int, file_name: str):
     try:
         result = requests.get(url=posts_url, headers=REQUEST_HEADERS, timeout=10)
@@ -134,12 +134,12 @@ def get_remaining_posts_num(posts_url: str, number_of_posts: int, file_name: str
     temp_hold_user_data = []
 
     for user_post_data in user_info.find_all(SHREDDIT_POST, class_=GET_POST_DATA_FINDALL_CLASS):
-        temp_hold_user_data.append(" post_URL: " + user_post_data["permalink"])
-        temp_hold_user_data.append(" username: " + user_post_data["author"])
-        temp_hold_user_data.append(" post_date: " + user_post_data["created-timestamp"])
-        temp_hold_user_data.append(" post_comment_number: " + user_post_data["comment-count"])
-        temp_hold_user_data.append(" number_of_votes: " + user_post_data["score"])
-        temp_hold_user_data.append(" post_type: " + user_post_data["post-type"])
+        temp_hold_user_data.append(user_post_data["permalink"])
+        temp_hold_user_data.append(user_post_data["author"])
+        temp_hold_user_data.append(user_post_data["created-timestamp"])
+        temp_hold_user_data.append(user_post_data["comment-count"])
+        temp_hold_user_data.append(user_post_data["score"])
+        temp_hold_user_data.append(user_post_data["post-type"])
         post_url_path = REDDIT_WEBPAGE_ADDRESS + user_post_data.find('a', class_='absolute inset-0').get('href')
         try:
             post_request = requests.get(url=post_url_path, headers=REQUEST_HEADERS, timeout=10)
@@ -166,13 +166,13 @@ def get_remaining_posts_num(posts_url: str, number_of_posts: int, file_name: str
 
         # Getting "user_cake_day","post_karma" and "comment_karma" from post's author's profile:
         cake_day = soup_author_profile.find("faceplate-date").get("ts")
-        temp_hold_user_data.append(" user_cake_day: " + str(cake_day))
+        temp_hold_user_data.append(str(cake_day))
         author_post_karma = soup_author_profile.find("faceplate-number", class_="font-semibold text-14").get("number")
-        temp_hold_user_data.append(" post_karma: " + author_post_karma)
+        temp_hold_user_data.append(author_post_karma)
         find_post_karma = soup_author_profile.find_all("div", class_="flex flex-col min-w-0")
         for karma in find_post_karma:
             author_comment_karma = karma.find("faceplate-number", class_="font-semibold text-14").get("number")
-            temp_hold_user_data.append(" comment_karma: " + author_comment_karma)
+            temp_hold_user_data.append(author_comment_karma)
             break
         temp_hold_user_data = list(dict.fromkeys(temp_hold_user_data))
         logger.info(NUMBER_OF_POSTS_NEEDED_TO_GET  + str(number_of_posts))
@@ -196,12 +196,12 @@ def main():
     delete_reddit_and_mylog_file()
     start_time = get_current_time()
     main_url = MAIN_URL
-    number_of_posts = 100
+    number_of_posts = 10
     while True:
-        get_number_of_posts = get_remaining_posts_num(main_url, number_of_posts, start_time)
-        if not get_number_of_posts:
+        remaining_posts_count = get_remaining_posts_num(main_url, number_of_posts, start_time)
+        if not remaining_posts_count:
             sys.exit("Finished!!!")
-        number_of_posts = get_number_of_posts
+        number_of_posts = remaining_posts_count
         next_url = get_next_url(main_url)
 
         if next_url is None:

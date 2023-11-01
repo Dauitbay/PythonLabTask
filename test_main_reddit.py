@@ -61,10 +61,10 @@ def test_get_current_time_valid_format():
 
 
 def test_get_current_time_invalid_format():
-    invalid_timestamp = "invalid_timestamp"
     expected_format = "%Y_%m_%d_%H_%M"
+    invalid_timestamp = "%d_%m_%Y_%H_%M"
     with pytest.raises(ValueError):
-        datetime.strptime(invalid_timestamp, expected_format) 
+        datetime.strptime(expected_format, invalid_timestamp) 
 
 
 def test_get_next_url_response():
