@@ -1,11 +1,11 @@
 from datetime import datetime
 import os
 import pytest
+import sys
 from unittest.mock import  patch
 import requests
 import validators
-from bs4 import BeautifulSoup
-from main_reddit import does_post_has_restrictions, delete_reddit_and_mylog_file, get_current_time, generate_unique_id, get_next_url, get_remaining_posts_num
+from main_reddit import parse_command_line_arg, delete_reddit_and_mylog_file, get_current_time, generate_unique_id, get_next_url, get_remaining_posts_num
 from main_reddit import MAIN_URL, REQUEST_HEADERS
 
 # Constants for testing
@@ -88,29 +88,31 @@ def test_get_post_data_no_timeout():
     delete_reddit_and_mylog_file()
 
 
-sample_html_with_author = """
-<html>
-    <a class="author-name" href="/user/test_author">Test Author</a>
-</html>
-"""
+def test_parse_command_line_arg_default():
+    # Mock command-line arguments
+    sys.argv = ["script.py"]
+    args = parse_command_line_arg()
+    assert args == (100, "https://www.reddit.com/r/popular/top/?t=month")
 
-sample_html_with_faceplate_date = """
-<html>
-    <div class="faceplate-date">Sample Date</div>
-</html>
-"""
+def test_parse_command_line_arg_custom():
+    # Mock command-line arguments with custom values
+    sys.argv = ["script.py", "--posts", "50", "--category", "new", "--period", "week"]
+    args = parse_command_line_arg()
+    assert args == (50, "https://www.reddit.com/r/popular/new/")
 
-def test_does_post_has_restrictions_author_and_date_present():
-    soup = BeautifulSoup(sample_html_with_author + sample_html_with_faceplate_date, "html.parser")
-    assert does_post_has_restrictions(soup) == True
+def test_parse_command_line_arg_custom_category():
+    # Mock command-line arguments with a custom category
+    sys.argv = ["script.py", "--category", "rising"]
+    args = parse_command_line_arg()
+    assert args == (100, "https://www.reddit.com/r/popular/rising/")
 
-def test_does_post_has_restrictions_author_missing():
-    soup = BeautifulSoup(sample_html_with_faceplate_date, "html.parser")
-    assert does_post_has_restrictions(soup) == False
+def test_parse_command_line_arg_custom_period():
+    # Mock command-line arguments with a custom period
+    sys.argv = ["script.py", "--period", "day"]
+    args = parse_command_line_arg()
+    assert args == (100, "https://www.reddit.com/r/popular/top/?t=day")
 
-def test_does_post_has_restrictions_date_missing():
-    soup = BeautifulSoup(sample_html_with_author, "html.parser")
-    assert does_post_has_restrictions(soup) == False
+
 
 if __name__ == "__main__":
     pytest.main()
