@@ -18,6 +18,13 @@ From this web page we get:
 and save them to file by giving unique_ID to users we collect from web page with file name ***reddit-YYYYMMDDHHmm.txt***.
 Every time we run code it will delete previus ***reddit-YYYYMMDDHHmm.txt*** and ***my_logfile.log*** files.
 
+We also can use command-line interface like:
+***python main_reddit.py --posts 100 --category top --period month***
+
+- In --posts : Here we can give number of posts we want to get.
+- In --category : Here we can give category of post from choosing ---> best, hot, new, top, rising.
+- In --period : Here we can give period of post if we choose "top" from category (Only in top we have options for period) ---> hour, day, week, month, year, all. 
+
 ## Setup required to this project
 Install the dependencies:
 
