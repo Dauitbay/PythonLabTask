@@ -25,30 +25,9 @@ import uuid
 import sys
 import requests
 from bs4 import BeautifulSoup
-
-
-# Constants
-REQUEST_HEADERS = {
-    "Accept": "text/html,application/xhtml+xml,application/xml;\
-        q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,\
-            application/signed-exchange;v=b3;q=0.7",
-    "Accept-Encoding": "gzip, deflate, br",
-    "Accept-Language": "en-GB,en-US;q=0.9,en;q=0.8,uz;q=0.7",
-    "Cache-Control": "max-age=0",
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, \
-        like Gecko) Chrome/117.0.0.0 Safari/537.36",
-}
-HTML_PARSER = "lxml"
-SHREDDIT_APP = "shreddit-app"
-SHREDDIT_POST = "shreddit-post"
-MAIN_URL = "https://www.reddit.com/r/popular/top/?t=month"
-REDDIT_WEBPAGE_ADDRESS = "https://www.reddit.com"
-SOUP_FIND_CLASS_NAME = (
-    "overflow-x-hidden xs:overflow-visible v2 pt-[var(--page-y-padding)]")
-GET_POST_DATA_FINDALL_CLASS = "block relative cursor-pointer bg-neutral-background focus-within:bg-neutral-background-hover hover:bg-neutral-background-hover xs:rounded-[16px] p-md my-2xs nd:visible"
-LOG_FILE_NAME = "my_logfile.log"
-NUMBER_OF_POSTS_NEEDED_TO_GET = "Number of posts needed to get --> "
-
+from consts import  ( REDDIT_WEBPAGE_ADDRESS, HTML_PARSER, SHREDDIT_APP, SHREDDIT_POST, SOUP_FIND_CLASS_NAME,
+REQUEST_HEADERS, GET_POST_DATA_FINDALL_CLASS, NUMBER_OF_POSTS_NEEDED_TO_GET, LOG_FILE_NAME, 
+PERIOD_COMMAND_LINE, CATEGOTY_COMMAND_LINE)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -202,20 +181,30 @@ def get_remaining_posts_num(posts_url: str, number_of_posts: int, file_name: str
 def parse_command_line_arg():
     parser = argparse.ArgumentParser(description="Reddit Scraper")
     parser.add_argument("--posts", type=int, default=100, help="Number of posts to scrape")
-    parser.add_argument("--category", type=str, default="top", help="Category of posts [best, hot, new, top, rising]")
-    parser.add_argument("--period", type=str, default="month", help="Select period [hour, day, week, month, year, all]")
-    args = parser.parse_args()
-    if args.posts:
-        if not args.category == 'top':
-            main_url = f"https://www.reddit.com/r/popular/{args.category}/"
-        else:
-            main_url = f"https://www.reddit.com/r/popular/top/?t={args.period}"
-        number_of_posts = args.posts
-    else:
+    parser.add_argument("--category", type=str, default="top", help=f"Category of posts {CATEGOTY_COMMAND_LINE}")
+    parser.add_argument("--period", type=str, default="month", help=f"Select period {PERIOD_COMMAND_LINE}")
+    args = parser.parse_args() 
+    check_category_top = False
+    try:
+        if args.posts:
+            if args.posts <= 0:
+                raise ValueError("Number of posts must be a positive integer and higher than 0" )
+            elif(args.category not in CATEGOTY_COMMAND_LINE):
+                raise ValueError(f"Category of post must be in {CATEGOTY_COMMAND_LINE}")
+            elif(args.period not in PERIOD_COMMAND_LINE):
+                raise ValueError(f"Period of post must be in {PERIOD_COMMAND_LINE}")
+            elif(args.category == 'top'):
+                check_category_top = True
+    except ValueError as e:
+        print(f"Error: {e}")
+        exit(1)
+    number_of_posts = args.posts
+    if check_category_top:
         main_url = f"https://www.reddit.com/r/popular/top/?t={args.period}"
-        number_of_posts = 1
+    else:
+        main_url = f"https://www.reddit.com/r/popular/{args.category}/"
     return number_of_posts, main_url
-
+   
 def main():
 
     number_of_posts, main_url = parse_command_line_arg()
