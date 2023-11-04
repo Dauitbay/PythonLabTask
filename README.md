@@ -39,16 +39,20 @@ deactivate
 
 ## Requred imports
 
- - from datetime import datetime
- - from time import sleep
- - from random import randint
- - import os
- - import os.path
- - import logging
- - import uuid
- - import sys
- - import requests
- - from bs4 import BeautifulSoup
+- from datetime import datetime
+- from time import sleep
+- from random import randint
+- import argparse
+- import os
+- import os.path
+- import logging
+- import uuid
+- import sys
+- import requests
+- from bs4 import BeautifulSoup
+- from consts import  ( REDDIT_WEBPAGE_ADDRESS, HTML_PARSER, SHREDDIT_APP, SHREDDIT_POST, SOUP_FIND_CLASS_NAME,
+REQUEST_HEADERS, GET_POST_DATA_FINDALL_CLASS, NUMBER_OF_POSTS_NEEDED_TO_GET, LOG_FILE_NAME, 
+PERIOD_COMMAND_LINE, CATEGOTY_COMMAND_LINE)
 
 Please ***NOTE*** you should import all packages in listed order.
 ## How code works
