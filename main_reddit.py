@@ -187,8 +187,8 @@ def parse_command_line_arg():
     check_category_top = False
     try:
         if args.posts:
-            if args.posts <= 0:
-                raise ValueError("Number of posts must be a positive integer and higher than 0" )
+            if args.posts <= 0 and args.posts < 1000:
+                raise ValueError("Number of posts must be a positive integer and higher than 0 and less than 1000" )
             elif(args.category not in CATEGOTY_COMMAND_LINE):
                 raise ValueError(f"Category of post must be in {CATEGOTY_COMMAND_LINE}")
             elif(args.period not in PERIOD_COMMAND_LINE):
