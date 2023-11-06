@@ -88,7 +88,7 @@ def does_post_has_restrictions(soup: BeautifulSoup):
     author_link = soup.find('a', class_='author-name')
     if author_link is None:
         logger.info("Age restriction. Could not access the author's profile.")
-        return False
+        return True
     post_author_profile_url = REDDIT_WEBPAGE_ADDRESS + author_link.get('href')
     try:
         author_profile_request = requests.get(url=post_author_profile_url, headers=REQUEST_HEADERS, timeout=10)
