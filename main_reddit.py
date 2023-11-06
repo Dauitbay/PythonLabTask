@@ -147,16 +147,30 @@ def get_remaining_posts_num(posts_url: str, number_of_posts: int, file_name: str
         temp_hold_user_data.append(str(cake_day))
         find_post_karma = soup_author_profile.find_all("div", class_="flex flex-col min-w-0")
         for karma in find_post_karma:
-            if soup_author_profile.find('p', class_="m-0 text-neutral-content-weak text-12 whitespace-nowrap truncate").get_text(strip=True) == 'Post Karma':
-                author_comment_karma = karma.find('span', {'data-testid': 'karma-number'}).get_text(strip=True)
-                temp_hold_user_data.append(str(author_comment_karma))
-            # Add <<comment karma>>
-            elif (soup_author_profile.find('p', 
-                                           class_="m-0 text-neutral-content-weak text-12 whitespace-nowrap truncate").get_text(strip=True) == 'Comment Karma'):
-                author_karma = soup_author_profile.find('span', {'data-testid': 'karma-number'}).get_text(strip=True)
-                # Add <<post karma>>
-                temp_hold_user_data.append(str(author_karma))
-                break
+            try:
+                if soup_author_profile.find('p', 
+                                            class_="m-0 text-neutral-content-weak text-12 whitespace-nowrap truncate").get_text(strip=True) == 'Post Karma':
+                    author_comment_karma = karma.find('span', {'data-testid': 'karma-number'}).get_text(strip=True)
+                    temp_hold_user_data.append(str(author_comment_karma))
+                # Add <<comment karma>> when text-12 in class 
+                elif (soup_author_profile.find('p', 
+                                            class_="m-0 text-neutral-content-weak text-12 whitespace-nowrap truncate").get_text(strip=True) == 'Comment Karma'):
+                    author_karma = soup_author_profile.find('span', {'data-testid': 'karma-number'}).get_text(strip=True)
+                    # Add <<post karma>> when text-12 in class 
+                    temp_hold_user_data.append(str(author_karma))
+                    break
+            except:
+                if soup_author_profile.find('p', 
+                                            class_="m-0 text-neutral-content-strong text-14 font-semibold whitespace-nowrap").get_text(strip=True) == 'Post Karma':
+                    author_comment_karma = karma.find('span', {'data-testid': 'karma-number'}).get_text(strip=True)
+                    temp_hold_user_data.append(str(author_comment_karma))
+                # Add <<comment karma>> when text-14 in class 
+                elif (soup_author_profile.find('p', 
+                                            class_="m-0 text-neutral-content-strong text-14 font-semibold whitespace-nowrap").get_text(strip=True) == 'Comment Karma'):
+                    author_karma = soup_author_profile.find('span', {'data-testid': 'karma-number'}).get_text(strip=True)
+                    # Add <<post karma>> when text-14 in class 
+                    temp_hold_user_data.append(str(author_karma))
+                    break 
         # Add <<post date>>  
         temp_hold_user_data.append(user_post_data["created-timestamp"])
         # Add <<number of comments>>
@@ -179,22 +193,22 @@ def get_remaining_posts_num(posts_url: str, number_of_posts: int, file_name: str
 
 
 def parse_command_line_arg():
+   
     parser = argparse.ArgumentParser(description="Reddit Scraper")
-    parser.add_argument("--posts", type=int, default=100, help="Number of posts to scrape")
-    parser.add_argument("--category", type=str, default="top", help=f"Category of posts {CATEGOTY_COMMAND_LINE}")
-    parser.add_argument("--period", type=str, default="month", help=f"Select period {PERIOD_COMMAND_LINE}")
+    parser.add_argument("--posts", default=100, type=int, help="Number of posts to scrape")
+    parser.add_argument("--category", default= 'top', type=str, help=f"Category of posts {CATEGOTY_COMMAND_LINE}")
+    parser.add_argument("--period", default='month', type=str, help=f"Select period {PERIOD_COMMAND_LINE}")
     args = parser.parse_args() 
     check_category_top = False
     try:
-        if args.posts:
-            if args.posts <= 0 :
-                raise ValueError("Number of posts must be a positive integer and higher than 0 " )
-            elif(args.category not in CATEGOTY_COMMAND_LINE):
-                raise ValueError(f"Category of post must be in {CATEGOTY_COMMAND_LINE}")
-            elif(args.period not in PERIOD_COMMAND_LINE):
-                raise ValueError(f"Period of post must be in {PERIOD_COMMAND_LINE}")
-            elif(args.category == 'top'):
-                check_category_top = True
+        if args.posts <= 0 :
+            raise ValueError("Number of posts must be a positive integer and higher than 0 " )
+        elif(args.category not in CATEGOTY_COMMAND_LINE):
+            raise ValueError(f"Category of post must be in {CATEGOTY_COMMAND_LINE}")
+        elif(args.period not in PERIOD_COMMAND_LINE):
+            raise ValueError(f"Period of post must be in {PERIOD_COMMAND_LINE}")
+        elif(args.category == 'top'):
+            check_category_top = True
     except ValueError as e:
         print(f"Error: {e}")
         exit(1)
@@ -204,7 +218,8 @@ def parse_command_line_arg():
     else:
         main_url = f"https://www.reddit.com/r/popular/{args.category}/"
     return number_of_posts, main_url
-   
+    
+
 def main():
 
     number_of_posts, main_url = parse_command_line_arg()
