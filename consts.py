@@ -24,3 +24,7 @@ LOG_FILE_NAME = "my_logfile.log"
 NUMBER_OF_POSTS_NEEDED_TO_GET = "Number of posts needed to get --> "
 CATEGOTY_COMMAND_LINE = ['best', 'hot', 'new', 'top', 'rising']
 PERIOD_COMMAND_LINE = ['hour', 'day', 'week', 'month', 'year', 'all']
+# Below CONSTANTS may change in reddit.com
+AUTHOR_PROFILE_FIND_CLASS_TEXT_12 = "m-0 text-neutral-content-weak text-12 whitespace-nowrap truncate"
+AUTHOR_PROFILE_FIND_CLASS_TEXT_14 = "m-0 text-neutral-content-strong text-14 font-semibold whitespace-nowrap"
+AUTHOR_PROFILE_FIND = "faceplate-tracker" 
