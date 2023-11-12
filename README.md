@@ -32,29 +32,12 @@ Create virtual env(link to example of commands):
 https://docs.python.org/3/library/venv.html
 
 Command to install libs from requirements.txt file:
-Use the ***pip install -r requirements.prod.txt*** command to install all of the Python modules and packages listed in requirements.prod.txt file.
+Use the ***pip install -r requirements.txt*** command to install all of the Python modules and packages listed in requirements.prod.txt file.
 
 To deactivate your virtual environment, simply run the following code in the terminal:
 deactivate
 
-## Requred imports
 
-- from datetime import datetime
-- from time import sleep
-- from random import randint
-- import argparse
-- import os
-- import os.path
-- import logging
-- import uuid
-- import sys
-- import requests
-- from bs4 import BeautifulSoup
-- from consts import  ( REDDIT_WEBPAGE_ADDRESS, HTML_PARSER, SHREDDIT_APP, SHREDDIT_POST, SOUP_FIND_CLASS_NAME,
-REQUEST_HEADERS, GET_POST_DATA_FINDALL_CLASS, NUMBER_OF_POSTS_NEEDED_TO_GET, LOG_FILE_NAME, 
-PERIOD_COMMAND_LINE, CATEGOTY_COMMAND_LINE)
-
-Please ***NOTE*** you should import all packages in listed order.
 ## How code works
 Main file is main_reddit.py 
 Scraping web page is reddit.com which is dynamic web page(loades content when user scrools).
@@ -63,8 +46,10 @@ Scraping web page is reddit.com which is dynamic web page(loades content when us
 
 ***2-step:*** It will get requred data from first loaded posts (just 3 posts in default and it will)
 
-***3-step:*** It will get url to next page in function ***get_next_url*** and will send it to ***get_post_data*** through main function and will continue getting data we need.
+***3-step:*** It will get url to next page in function ***get_next_url*** and will send it to ***get_remaining_posts_num*** through main function and will continue getting data we need.
 
-***4-step:*** While getting users data we will write them to file reddit-YYYYMMDDHHmm.txt with unique ID. Also we create log file and saving logging info to file called: my_logfile.log.
+***4-step:*** While collecting post and user data we can face restrictions from web page. To handle restrictions we check for them in ***does_post_has_restrictions*** function. If we had restrictions we skip that post and save report in my_logfile.log to review if nessary.
 
-***5- step:*** Every time we RUN our code it will delete existing log and saved reddit-YYYYMMDDHHmm.txt from previus run.
+***5-step:*** While getting users data we will write them to file reddit-YYYYMMDDHHmm.txt with unique ID. Also we create log file and saving logging info to file called: my_logfile.log.
+
+***6- step:*** Every time we RUN our code it will delete existing log and saved reddit-YYYYMMDDHHmm.txt from previus run.
