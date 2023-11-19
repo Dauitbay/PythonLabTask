@@ -1,4 +1,4 @@
-"""main_reddit.py does request to reddit.com (MONTH TOP posts) to get:
+"""main_reddit_parser.py does request to reddit.com (MONTH TOP posts) to get:
 
     - post URL;
     - username;
@@ -10,26 +10,29 @@
     - number of comments;
     - number of votes;
     - post category---> I could not GET this one only.
-    And saves them in reddit-YYYYMMDDHHMM.txt giving UNIQUE_ID
+    And saves them using RESTful service in reddit-YYYYMMDDHHMM.txt giving UNIQUE_ID
     to every USER COLLECTED DATA.
     AROUND 8-9 minutes required to gather 100 user data.
     This module has additional <conts.py> module for CONSTANTS
 """
-import  datetime 
+from for_test import run_server
 from time import sleep
 from random import randint
 import argparse
 import os
 import os.path
 import logging
-import uuid
 import sys
 import requests
 from bs4 import BeautifulSoup
-from consts import  ( REDDIT_WEBPAGE_ADDRESS, HTML_PARSER, SHREDDIT_APP, SHREDDIT_POST, SOUP_FIND_CLASS_NAME,
-REQUEST_HEADERS, GET_POST_DATA_FINDALL_CLASS, NUMBER_OF_POSTS_NEEDED_TO_GET, LOG_FILE_NAME, 
-PERIOD_COMMAND_LINE, CATEGOTY_COMMAND_LINE, AUTHOR_PROFILE_FIND, 
-AUTHOR_PROFILE_FIND_CLASS_TEXT_12, AUTHOR_PROFILE_FIND_CLASS_TEXT_14)
+
+from consts import (REDDIT_WEBPAGE_ADDRESS, HTML_PARSER, SHREDDIT_APP, SHREDDIT_POST, SOUP_FIND_CLASS_NAME,
+REQUEST_HEADERS, GET_POST_DATA_FINDALL_CLASS, NUMBER_OF_POSTS_NEEDED_TO_GET, LOG_FILE_NAME,
+PERIOD_COMMAND_LINE, CATEGOTY_COMMAND_LINE, AUTHOR_PROFILE_FIND,
+AUTHOR_PROFILE_FIND_CLASS_TEXT_12, AUTHOR_PROFILE_FIND_CLASS_TEXT_14, conn, server_headers)
+import http.client
+import json
+
 
 logging.basicConfig(
     level=logging.INFO,
@@ -45,13 +48,6 @@ def delete_reddit_and_my_logfile():
             os.remove(fname)
 
 
-def write_to_file(user_data, cur_time):
-    with open(f"reddit-{cur_time}.txt", "a+") as file:
-        unique_id = uuid.uuid1().hex[:32]
-        file.write(unique_id + ";")
-        file.write(";".join(user_data) + "\n")
-
-
 # Finding URL of next page and send it to get_remaining_posts_num func. through main func.
 def get_next_url(url: str):
     create_next_url = ""
@@ -59,7 +55,7 @@ def get_next_url(url: str):
         next_page_req = requests.get(url=url, headers=REQUEST_HEADERS, timeout=10)
         logger.info("Loaded next pages url {}".format(url))
         next_page_soup = BeautifulSoup(next_page_req.text, HTML_PARSER)
-        sleep(randint(0,1))
+        sleep(randint(0, 1))
         find_next_url = (
             next_page_soup.find(SHREDDIT_APP, class_=SOUP_FIND_CLASS_NAME)
             .find("faceplate-partial", attrs={"slot": "load-after"})
@@ -89,8 +85,26 @@ def does_post_has_restrictions(soup: BeautifulSoup):
     return False
 
 
+def send_data_to_server(data):
+    try:
+        # conn = http.client.HTTPConnection('localhost', 8087, timeout=10)
+        # server_headers = {'Content-type': 'application/json'}
+        encoded_data = json.dumps(data).encode('utf-8')
+
+        conn.request('POST', '/posts', body=encoded_data, headers=server_headers)
+        response = conn.getresponse()
+
+        logger.info("Response to POST: {}".format(response.read().decode('utf-8')))
+    except http.client.RemoteDisconnected as e:
+        logger.error(f"RemoteDisconnected: {e}")
+    except Exception as e:
+        logger.error(f"Error sending data to server: {e}")
+    finally:
+        conn.close()
+
+
 # Gathering required data from posts and returning num_of_posts
-def get_remaining_posts_num(posts_url: str, number_of_posts: int, file_name: str):
+def get_remaining_posts_num(posts_url: str, number_of_posts: int):
 
     try:
         result = requests.get(url=posts_url, headers=REQUEST_HEADERS, timeout=10)
@@ -102,9 +116,9 @@ def get_remaining_posts_num(posts_url: str, number_of_posts: int, file_name: str
     temp_hold_user_data = []
 
     for user_post_data in user_info.find_all(SHREDDIT_POST, class_=GET_POST_DATA_FINDALL_CLASS):
-        # Add <<post URL>> 
+        # Add <<post URL>>
         temp_hold_user_data.append(user_post_data["permalink"])
-        # Add <<username>> 
+        # Add <<username>>
         temp_hold_user_data.append(user_post_data["author"])
         post_url_path = REDDIT_WEBPAGE_ADDRESS + user_post_data.find('a', class_='absolute inset-0').get('href')
         try:
@@ -123,37 +137,37 @@ def get_remaining_posts_num(posts_url: str, number_of_posts: int, file_name: str
             logger.error("TIMED OUT doing post_author_profile_request")
             continue
         logger.info("Loaded post author profile URL: {}".format(post_author_profile_url))
-        soup_author_profile = BeautifulSoup(author_profile_request.text, HTML_PARSER)        
+        soup_author_profile = BeautifulSoup(author_profile_request.text, HTML_PARSER)
         cake_day = soup_author_profile.find(AUTHOR_PROFILE_FIND).get("ts")
         # Add <<user cake day>>
         temp_hold_user_data.append(str(cake_day))
         find_post_karma = soup_author_profile.find_all("div", class_="flex flex-col min-w-0")
         for karma in find_post_karma:
             try:
-                if soup_author_profile.find('p', 
-                                            class_= AUTHOR_PROFILE_FIND_CLASS_TEXT_12).get_text(strip=True) == 'Post Karma':
+                if soup_author_profile.find('p',
+                                            class_=AUTHOR_PROFILE_FIND_CLASS_TEXT_12).get_text(strip=True) == 'Post Karma':
                     author_comment_karma = karma.find('span', {'data-testid': 'karma-number'}).get_text(strip=True)
-                    # Add <<comment karma>> when text-12 in class 
+                    # Add <<comment karma>> when text-12 in class
                     temp_hold_user_data.append(str(author_comment_karma))
-                elif soup_author_profile.find('p', 
-                                            class_= AUTHOR_PROFILE_FIND_CLASS_TEXT_12).get_text(strip=True) == 'Comment Karma':
+                elif soup_author_profile.find('p',
+                                            class_=AUTHOR_PROFILE_FIND_CLASS_TEXT_12).get_text(strip=True) == 'Comment Karma':
                     author_karma = soup_author_profile.find('span', {'data-testid': 'karma-number'}).get_text(strip=True)
-                    # Add <<post karma>> when text-12 in class 
+                    # Add <<post karma>> when text-12 in class
                     temp_hold_user_data.append(str(author_karma))
                     break
             except:
-                if soup_author_profile.find('p', 
-                                            class_= AUTHOR_PROFILE_FIND_CLASS_TEXT_14).get_text(strip=True) == 'Post Karma':
+                if soup_author_profile.find('p',
+                                            class_=AUTHOR_PROFILE_FIND_CLASS_TEXT_14).get_text(strip=True) == 'Post Karma':
                     author_comment_karma = karma.find('span', {'data-testid': 'karma-number'}).get_text(strip=True)
-                    # Add <<comment karma>> when text-14 in class 
+                    # Add <<comment karma>> when text-14 in class
                     temp_hold_user_data.append(str(author_comment_karma))
-                elif soup_author_profile.find('p', 
-                                            class_= AUTHOR_PROFILE_FIND_CLASS_TEXT_14).get_text(strip=True) == 'Comment Karma':
+                elif soup_author_profile.find('p',
+                                            class_=AUTHOR_PROFILE_FIND_CLASS_TEXT_14).get_text(strip=True) == 'Comment Karma':
                     author_karma = soup_author_profile.find('span', {'data-testid': 'karma-number'}).get_text(strip=True)
-                    # Add <<post karma>> when text-14 in class 
+                    # Add <<post karma>> when text-14 in class
                     temp_hold_user_data.append(str(author_karma))
-                    break 
-        # Add <<post date>>  
+                    break
+        # Add <<post date>>
         temp_hold_user_data.append(user_post_data["created-timestamp"])
         # Add <<number of comments>>
         temp_hold_user_data.append(user_post_data["comment-count"])
@@ -163,7 +177,10 @@ def get_remaining_posts_num(posts_url: str, number_of_posts: int, file_name: str
         temp_hold_user_data = list(dict.fromkeys(temp_hold_user_data))
         logger.info(NUMBER_OF_POSTS_NEEDED_TO_GET + str(number_of_posts))
         number_of_posts -= 1
-        write_to_file(temp_hold_user_data, file_name)
+
+        send_data_to_server(temp_hold_user_data)
+
+        # write_to_file(temp_hold_user_data, file_name)
         # Exiting the function after collecting the required amount of data:
         if number_of_posts == 0:
             logger.info(NUMBER_OF_POSTS_NEEDED_TO_GET + str(number_of_posts))
@@ -180,11 +197,11 @@ def parse_command_line_arg():
     parser.add_argument("--period", default='month', type=str, help=f"Select period {PERIOD_COMMAND_LINE}")
     args = parser.parse_args() 
     try:
-        if args.posts <= 0 :
-            raise ValueError("Number of posts must be a positive integer and higher than 0 " )
-        elif(args.category not in CATEGOTY_COMMAND_LINE):
+        if args.posts <= 0:
+            raise ValueError("Number of posts must be a positive integer and higher than 0 ")
+        elif args.category not in CATEGOTY_COMMAND_LINE:
             raise ValueError(f"Category of post must be in {CATEGOTY_COMMAND_LINE}")
-        elif(args.period not in PERIOD_COMMAND_LINE):
+        elif args.period not in PERIOD_COMMAND_LINE:
             raise ValueError(f"Period of post must be in {PERIOD_COMMAND_LINE}")
     except ValueError as e:
         print(f"Error: {e}")
@@ -195,7 +212,7 @@ def parse_command_line_arg():
     else:
         main_url = f"https://www.reddit.com/r/popular/{args.category}/"
     return number_of_posts, main_url
-    
+
 
 def main():
     number_of_posts, main_url = parse_command_line_arg()
@@ -203,10 +220,10 @@ def main():
     if os.path.isfile(LOG_FILE_NAME):
         logging.shutdown()
 
-    delete_reddit_and_my_logfile()
-    start_time = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M")
+    # delete_reddit_and_my_logfile()
+
     while True:
-        remaining_posts_count = get_remaining_posts_num(main_url, number_of_posts, start_time)
+        remaining_posts_count = get_remaining_posts_num(main_url, number_of_posts)
         if not remaining_posts_count:
             sys.exit("\n Finished!!! \n")
         number_of_posts = remaining_posts_count
@@ -218,3 +235,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
