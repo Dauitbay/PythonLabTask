@@ -2,7 +2,6 @@
 Here are constans for main_reddit.py file which scraps web page reddit.com using Beautifulsoup
 
 """
-import http.client
 # Constants
 REQUEST_HEADERS = {
     "Accept": "text/html,application/xhtml+xml,application/xml;\
@@ -29,6 +28,3 @@ PERIOD_COMMAND_LINE = ['hour', 'day', 'week', 'month', 'year', 'all']
 AUTHOR_PROFILE_FIND_CLASS_TEXT_12 = "m-0 text-neutral-content-weak text-12 whitespace-nowrap truncate"
 AUTHOR_PROFILE_FIND_CLASS_TEXT_14 = "m-0 text-neutral-content-strong text-14 font-semibold whitespace-nowrap"
 AUTHOR_PROFILE_FIND = "faceplate-tracker" 
-
-conn = http.client.HTTPConnection('localhost', 8087, timeout=10)
-server_headers = {'Content-type': 'application/json'}
