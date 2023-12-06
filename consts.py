@@ -1,8 +1,9 @@
 """
-Here are constans for main_reddit.py file which scraps web page reddit.com using Beautifulsoup
+Here are constants for main_reddit.py file which scraps web page reddit.com using Beautifulsoup
 
 """
 import http.client
+import datetime
 # Constants
 REQUEST_HEADERS = {
     "Accept": "text/html,application/xhtml+xml,application/xml;\
@@ -32,3 +33,6 @@ AUTHOR_PROFILE_FIND = "faceplate-tracker"
 
 conn = http.client.HTTPConnection('localhost', 8087, timeout=10)
 server_headers = {'Content-type': 'application/json'}
+
+# localserver_8087_for_reddit
+PROG_START_TIME = datetime.datetime.now().strftime("%Y%m%d")
