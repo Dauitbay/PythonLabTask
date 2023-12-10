@@ -29,7 +29,7 @@ from bs4 import BeautifulSoup
 from consts import (REDDIT_WEBPAGE_ADDRESS, HTML_PARSER, SHREDDIT_APP, SHREDDIT_POST, SOUP_FIND_CLASS_NAME,
                     REQUEST_HEADERS, GET_POST_DATA_FINDALL_CLASS, NUMBER_OF_POSTS_NEEDED_TO_GET,
                     PERIOD_COMMAND_LINE, CATEGOTY_COMMAND_LINE, AUTHOR_PROFILE_FIND, LOG_FILE_NAME,
-                    AUTHOR_PROFILE_FIND_CLASS_TEXT_12, AUTHOR_PROFILE_FIND_CLASS_TEXT_14, conn, server_headers)
+                    AUTHOR_PROFILE_FIND_CLASS_TEXT_12, AUTHOR_PROFILE_FIND_CLASS_TEXT_14, connect, server_headers)
 import http.client
 import json
 
@@ -79,6 +79,7 @@ def does_post_has_restrictions(soup: BeautifulSoup):
         return True
     soup_author_profile = BeautifulSoup(author_profile_request.text, HTML_PARSER)
     author_profile = soup_author_profile.find(AUTHOR_PROFILE_FIND)
+
     if author_profile is None:
         logger.info(" Author is BLOCKED or HTML attribute is changed. Could not access the author's profile.")
         return True
@@ -90,12 +91,9 @@ def send_data_to_server(data):
     if not data:
         logger.warning("Attempted to send empty data to the server.")
         return
-
-    connect = http.client.HTTPConnection('localhost', 8087, timeout=10)
-    ser_headers = {'Content-type': 'application/json'}
     try:
         encoded_data = json.dumps(data).encode('utf-8')
-        connect.request('POST', '/posts/', body=encoded_data, headers=ser_headers)
+        connect.request('POST', '/posts/', body=encoded_data, headers=server_headers)
         response = connect.getresponse()
         logger.info("Response to POST: {}".format(response.read().decode('utf-8')))
     except http.client.RemoteDisconnected as e:
@@ -116,7 +114,6 @@ def get_remaining_posts_num(posts_url: str, number_of_posts: int):
     soup = BeautifulSoup(result.text, HTML_PARSER)
     user_info = soup.find(SHREDDIT_APP, class_=SOUP_FIND_CLASS_NAME)
     temp_hold_user_data = []
-
     for user_post_data in user_info.find_all(SHREDDIT_POST, class_=GET_POST_DATA_FINDALL_CLASS):
         # Add <<post URL>>
         temp_hold_user_data.append(user_post_data["permalink"])
@@ -131,6 +128,7 @@ def get_remaining_posts_num(posts_url: str, number_of_posts: int):
         logger.info("Loaded posts URL: {}".format(post_url_path))
         soup_post = BeautifulSoup(post_request.text, HTML_PARSER)
         if does_post_has_restrictions(soup_post):
+            print("does post has res")
             continue
         post_author_profile_url = REDDIT_WEBPAGE_ADDRESS + soup_post.find('a', class_='author-name').get('href')
         try:
@@ -140,41 +138,28 @@ def get_remaining_posts_num(posts_url: str, number_of_posts: int):
             continue
         logger.info("Loaded post author profile URL: {}".format(post_author_profile_url))
         soup_author_profile = BeautifulSoup(author_profile_request.text, HTML_PARSER)
-        cake_day = soup_author_profile.find(AUTHOR_PROFILE_FIND).get("ts")
-        # Add <<user cake day>>
-        temp_hold_user_data.append(str(cake_day))
         find_post_karma = soup_author_profile.find_all("div", class_="flex flex-col min-w-0")
         for karma in find_post_karma:
-            try:
+            find_class_text_list = [AUTHOR_PROFILE_FIND_CLASS_TEXT_12, AUTHOR_PROFILE_FIND_CLASS_TEXT_14]
+            for find_class_text in find_class_text_list:
                 if soup_author_profile.find('p',
-                                            class_=AUTHOR_PROFILE_FIND_CLASS_TEXT_12).get_text(
-                    strip=True) == 'Post Karma':
+                                            class_=find_class_text).get_text(
+                    strip=True) == 'Cake day':
+                    cake_day = karma.find('span', {'data-testid': 'cake - day'}).get_text(strip=True)
+                    # Add <<user cake day>>
+                    temp_hold_user_data.append(str(cake_day))
+                elif soup_author_profile.find('p',
+                                              class_=find_class_text).get_text(strip=True) == 'Post Karma':
                     author_comment_karma = karma.find('span', {'data-testid': 'karma-number'}).get_text(strip=True)
                     # Add <<comment karma>> when text-12 in class
                     temp_hold_user_data.append(str(author_comment_karma))
                 elif soup_author_profile.find('p',
-                                              class_=AUTHOR_PROFILE_FIND_CLASS_TEXT_12).get_text(
-                    strip=True) == 'Comment Karma':
+                                              class_=find_class_text).get_text(strip=True) == 'Comment Karma':
                     author_karma = soup_author_profile.find('span', {'data-testid': 'karma-number'}).get_text(
                         strip=True)
                     # Add <<post karma>> when text-12 in class
                     temp_hold_user_data.append(str(author_karma))
-                    break
-            except:
-                if soup_author_profile.find('p',
-                                            class_=AUTHOR_PROFILE_FIND_CLASS_TEXT_14).get_text(
-                    strip=True) == 'Post Karma':
-                    author_comment_karma = karma.find('span', {'data-testid': 'karma-number'}).get_text(strip=True)
-                    # Add <<comment karma>> when text-14 in class
-                    temp_hold_user_data.append(str(author_comment_karma))
-                elif soup_author_profile.find('p',
-                                              class_=AUTHOR_PROFILE_FIND_CLASS_TEXT_14).get_text(
-                    strip=True) == 'Comment Karma':
-                    author_karma = soup_author_profile.find('span', {'data-testid': 'karma-number'}).get_text(
-                        strip=True)
-                    # Add <<post karma>> when text-14 in class
-                    temp_hold_user_data.append(str(author_karma))
-                    break
+            break
         # Add <<post date>>
         temp_hold_user_data.append(user_post_data["created-timestamp"])
         # Add <<number of comments>>
@@ -185,9 +170,9 @@ def get_remaining_posts_num(posts_url: str, number_of_posts: int):
         temp_hold_user_data = list(dict.fromkeys(temp_hold_user_data))
         logger.info(NUMBER_OF_POSTS_NEEDED_TO_GET + str(number_of_posts))
         number_of_posts -= 1
-
         send_data_to_server(temp_hold_user_data)
-
+        print(temp_hold_user_data)
+        print(number_of_posts)
         if number_of_posts == 0:
             logger.info(NUMBER_OF_POSTS_NEEDED_TO_GET + str(number_of_posts))
             return number_of_posts

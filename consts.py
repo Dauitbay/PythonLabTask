@@ -21,7 +21,7 @@ SHREDDIT_POST = "shreddit-post"
 REDDIT_WEBPAGE_ADDRESS = "https://www.reddit.com"
 SOUP_FIND_CLASS_NAME = (
     "overflow-x-hidden xs:overflow-visible v2 pt-[var(--page-y-padding)]")
-GET_POST_DATA_FINDALL_CLASS = "block relative cursor-pointer bg-neutral-background focus-within:bg-neutral-background-hover hover:bg-neutral-background-hover xs:rounded-[16px] p-md my-2xs nd:visible"
+GET_POST_DATA_FINDALL_CLASS = "block relative cursor-pointer bg-neutral-background focus-within:bg-neutral-background-hover hover:bg-neutral-background-hover xs:rounded-[16px] px-md py-2xs my-2xs nd:visible"
 LOG_FILE_NAME = "my_logfile.log"
 NUMBER_OF_POSTS_NEEDED_TO_GET = "Number of posts needed to get --> "
 CATEGOTY_COMMAND_LINE = ['best', 'hot', 'new', 'top', 'rising']
@@ -31,7 +31,7 @@ AUTHOR_PROFILE_FIND_CLASS_TEXT_12 = "m-0 text-neutral-content-weak text-12 white
 AUTHOR_PROFILE_FIND_CLASS_TEXT_14 = "m-0 text-neutral-content-strong text-14 font-semibold whitespace-nowrap"
 AUTHOR_PROFILE_FIND = "faceplate-tracker" 
 
-conn = http.client.HTTPConnection('localhost', 8087, timeout=10)
+connect = http.client.HTTPConnection('localhost', 8087, timeout=10)
 server_headers = {'Content-type': 'application/json'}
 
 # localserver_8087_for_reddit
