@@ -59,7 +59,8 @@ def get_next_url(url: str):
         next_page_req = requests.get(url=url, headers=REQUEST_HEADERS, timeout=10)
         logger.info("Loaded next pages url {}".format(url))
         next_page_soup = BeautifulSoup(next_page_req.text, HTML_PARSER)
-        sleep(randint(0,1))
+        # sleep(randint(0,1))
+
         find_next_url = (
             next_page_soup.find(SHREDDIT_APP, class_=SOUP_FIND_CLASS_NAME)
             .find("faceplate-partial", attrs={"slot": "load-after"})
@@ -100,9 +101,8 @@ def get_remaining_posts_num(posts_url: str, number_of_posts: int, file_name: str
     soup = BeautifulSoup(result.text, HTML_PARSER)
     user_info = soup.find(SHREDDIT_APP, class_=SOUP_FIND_CLASS_NAME)
     temp_hold_user_data = []
-
     for user_post_data in user_info.find_all(SHREDDIT_POST, class_=GET_POST_DATA_FINDALL_CLASS):
-        # Add <<post URL>> 
+        # Add <<post URL>>
         temp_hold_user_data.append(user_post_data["permalink"])
         # Add <<username>> 
         temp_hold_user_data.append(user_post_data["author"])
@@ -115,6 +115,7 @@ def get_remaining_posts_num(posts_url: str, number_of_posts: int, file_name: str
         logger.info("Loaded posts URL: {}".format(post_url_path))
         soup_post = BeautifulSoup(post_request.text, HTML_PARSER)
         if does_post_has_restrictions(soup_post):
+            print("does post has res")
             continue
         post_author_profile_url = REDDIT_WEBPAGE_ADDRESS + soup_post.find('a', class_='author-name').get('href')
         try:
@@ -123,36 +124,28 @@ def get_remaining_posts_num(posts_url: str, number_of_posts: int, file_name: str
             logger.error("TIMED OUT doing post_author_profile_request")
             continue
         logger.info("Loaded post author profile URL: {}".format(post_author_profile_url))
-        soup_author_profile = BeautifulSoup(author_profile_request.text, HTML_PARSER)        
-        cake_day = soup_author_profile.find(AUTHOR_PROFILE_FIND).get("ts")
-        # Add <<user cake day>>
-        temp_hold_user_data.append(str(cake_day))
+        soup_author_profile = BeautifulSoup(author_profile_request.text, HTML_PARSER)
         find_post_karma = soup_author_profile.find_all("div", class_="flex flex-col min-w-0")
         for karma in find_post_karma:
-            try:
-                if soup_author_profile.find('p', 
-                                            class_= AUTHOR_PROFILE_FIND_CLASS_TEXT_12).get_text(strip=True) == 'Post Karma':
-                    author_comment_karma = karma.find('span', {'data-testid': 'karma-number'}).get_text(strip=True)
-                    # Add <<comment karma>> when text-12 in class 
-                    temp_hold_user_data.append(str(author_comment_karma))
-                elif soup_author_profile.find('p', 
-                                            class_= AUTHOR_PROFILE_FIND_CLASS_TEXT_12).get_text(strip=True) == 'Comment Karma':
-                    author_karma = soup_author_profile.find('span', {'data-testid': 'karma-number'}).get_text(strip=True)
-                    # Add <<post karma>> when text-12 in class 
-                    temp_hold_user_data.append(str(author_karma))
-                    break
-            except:
-                if soup_author_profile.find('p', 
-                                            class_= AUTHOR_PROFILE_FIND_CLASS_TEXT_14).get_text(strip=True) == 'Post Karma':
-                    author_comment_karma = karma.find('span', {'data-testid': 'karma-number'}).get_text(strip=True)
-                    # Add <<comment karma>> when text-14 in class 
-                    temp_hold_user_data.append(str(author_comment_karma))
-                elif soup_author_profile.find('p', 
-                                            class_= AUTHOR_PROFILE_FIND_CLASS_TEXT_14).get_text(strip=True) == 'Comment Karma':
-                    author_karma = soup_author_profile.find('span', {'data-testid': 'karma-number'}).get_text(strip=True)
-                    # Add <<post karma>> when text-14 in class 
-                    temp_hold_user_data.append(str(author_karma))
-                    break 
+            find_class_text_list = [AUTHOR_PROFILE_FIND_CLASS_TEXT_12, AUTHOR_PROFILE_FIND_CLASS_TEXT_14]
+            for find_class_text in find_class_text_list:
+                    if soup_author_profile.find('p',
+                                                class_= find_class_text).get_text(
+                        strip=True) == 'Cake day':
+                        cake_day = karma.find('span', {'data-testid': 'cake - day'}).get_text(strip=True)
+                        # Add <<user cake day>>
+                        temp_hold_user_data.append(str(cake_day))
+                    elif soup_author_profile.find('p',
+                                                class_= find_class_text).get_text(strip=True) == 'Post Karma':
+                        author_comment_karma = karma.find('span', {'data-testid': 'karma-number'}).get_text(strip=True)
+                        # Add <<comment karma>> when text-12 in class
+                        temp_hold_user_data.append(str(author_comment_karma))
+                    elif soup_author_profile.find('p',
+                                                class_= find_class_text).get_text(strip=True) == 'Comment Karma':
+                        author_karma = soup_author_profile.find('span', {'data-testid': 'karma-number'}).get_text(strip=True)
+                        # Add <<post karma>> when text-12 in class
+                        temp_hold_user_data.append(str(author_karma))
+            break
         # Add <<post date>>  
         temp_hold_user_data.append(user_post_data["created-timestamp"])
         # Add <<number of comments>>
@@ -164,6 +157,7 @@ def get_remaining_posts_num(posts_url: str, number_of_posts: int, file_name: str
         logger.info(NUMBER_OF_POSTS_NEEDED_TO_GET + str(number_of_posts))
         number_of_posts -= 1
         write_to_file(temp_hold_user_data, file_name)
+        print(temp_hold_user_data)
         # Exiting the function after collecting the required amount of data:
         if number_of_posts == 0:
             logger.info(NUMBER_OF_POSTS_NEEDED_TO_GET + str(number_of_posts))
