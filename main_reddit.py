@@ -2,20 +2,19 @@
 
     - post URL;
     - username;
-    - user karma;
     - user cake day;
     - post karma;
     - comment karma;
     - post date;
     - number of comments;
     - number of votes;
-    - post category---> I could not GET this one only.
+    - post category---> I could not GET this and "- user karma" one only.
     And saves them in reddit-YYYYMMDDHHMM.txt giving UNIQUE_ID
     to every USER COLLECTED DATA.
     AROUND 8-9 minutes required to gather 100 user data.
     This module has additional <conts.py> module for CONSTANTS
 """
-import  datetime 
+from datetime import datetime
 from time import sleep
 from random import randint
 import argparse
@@ -125,29 +124,21 @@ def get_remaining_posts_num(posts_url: str, number_of_posts: int, file_name: str
             continue
         logger.info("Loaded post author profile URL: {}".format(post_author_profile_url))
         soup_author_profile = BeautifulSoup(author_profile_request.text, HTML_PARSER)
+         # Add <<user cake day>>
+        cake_day = datetime.fromisoformat(soup_author_profile.find('time')['datetime'])
+        temp_hold_user_data.append(str(cake_day)[:10])
         find_post_karma = soup_author_profile.find_all("div", class_="flex flex-col min-w-0")
         for karma in find_post_karma:
-            find_class_text_list = [AUTHOR_PROFILE_FIND_CLASS_TEXT_12, AUTHOR_PROFILE_FIND_CLASS_TEXT_14]
-            for find_class_text in find_class_text_list:
-                    if soup_author_profile.find('p',
-                                                class_= find_class_text).get_text(
-                        strip=True) == 'Cake day':
-                        cake_day = karma.find('span', {'data-testid': 'cake - day'}).get_text(strip=True)
-                        # Add <<user cake day>>
-                        temp_hold_user_data.append(str(cake_day))
-                    elif soup_author_profile.find('p',
-                                                class_= find_class_text).get_text(strip=True) == 'Post Karma':
-                        author_comment_karma = karma.find('span', {'data-testid': 'karma-number'}).get_text(strip=True)
-                        # Add <<comment karma>> when text-12 in class
-                        temp_hold_user_data.append(str(author_comment_karma))
-                    elif soup_author_profile.find('p',
-                                                class_= find_class_text).get_text(strip=True) == 'Comment Karma':
-                        author_karma = soup_author_profile.find('span', {'data-testid': 'karma-number'}).get_text(strip=True)
-                        # Add <<post karma>> when text-12 in class
-                        temp_hold_user_data.append(str(author_karma))
+            author_comment_karma = karma.find('span', {'data-testid': 'karma-number'}).get_text(strip=True)
+            # Add <<comment karma>>
+            temp_hold_user_data.append(str(author_comment_karma))
+            author_karma = soup_author_profile.find('span', {'data-testid': 'karma-number'}).get_text(
+                strip=True)
+            # Add <<post karma>>
+            temp_hold_user_data.append(str(author_karma))
             break
-        # Add <<post date>>  
-        temp_hold_user_data.append(user_post_data["created-timestamp"])
+        # Add <<post date>>
+        temp_hold_user_data.append(user_post_data["created-timestamp"][:23])
         # Add <<number of comments>>
         temp_hold_user_data.append(user_post_data["comment-count"])
         # Add <<number of votes>>
