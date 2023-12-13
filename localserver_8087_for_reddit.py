@@ -1,62 +1,65 @@
-# localserver_8087_for_reddit.py
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, HTTPServer
-import os
 import json
 import uuid
 from urllib.parse import urlparse
-from consts import PROG_START_TIME
-
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-MATCHING_FILES = [f for f in os.listdir(BASE_DIR) if f.startswith("reddit-")]
-REDDIT_FILENAME = os.path.join(BASE_DIR, MATCHING_FILES[0]) if MATCHING_FILES else None
+from consts import (PROG_START_TIME, BASE_DIR, MATCHING_FILES, REDDIT_FILENAME)
 
 
-def is_valid_post_data(data):
-    if not isinstance(data, list) or len(data) != 6:
-        return False
-    # Checking if the 0 field is a valid path
-    if not isinstance(data[0], str) or not data[0].startswith("/"):
-        return False
-    # Checking if the 1field is a valid string
-    if not isinstance(data[1], str):
-        return False
-    # Checking if the 2 field is a valid integer
-    try:
-        int(data[2].replace(',', ''))
-    except ValueError:
-        return False
-    # Checking if the 3 field is a valid datetime string
-    try:
-        datetime.strptime(data[3], "%Y-%m-%dT%H:%M:%S.%f%z")
-    except ValueError:
-        return False
-    # Checking if the 4 field and seventh 5 are valid integers
-    try:
-        int(data[4])
-        int(data[5])
-    except ValueError:
-        return False
+def is_valid_data(data):
+
+    def is_valid_date_string(data_to_validate):
+        try:
+            datetime.strptime(data_to_validate, "%Y-%m-%dT%H:%M:%S.%f%z")
+            return True
+        except ValueError:
+            return False
+
+    def is_valid_integer_string(data_to_validate):
+        try:
+            int(data_to_validate.replace(',', ''))
+            return True
+        except ValueError:
+            return False
+    validation_rules = {
+        "UNIQUE_ID": lambda x: isinstance(x, str) and len(x) == 32,
+        "link": lambda x: isinstance(x, str) and x.startswith("/r/"),
+        "username": lambda x: isinstance(x, str),
+        "user_cake_data": is_valid_date_string,
+        "user_post_karma": is_valid_integer_string,
+        "user_comment_karma": is_valid_integer_string,
+        "post_date": is_valid_date_string,
+        "number_of_comments": is_valid_integer_string,
+        "number_of_votes": is_valid_integer_string,
+        "post_category": lambda x: isinstance(x, str),
+    }
+    for field, validation_rule in validation_rules.items():
+        if "UNIQUE_ID" not in data:
+            continue
+
+        value = data[field]
+        if not validation_rule(value):
+            return False
+
     return True
 
 
 def write_to_file(unique_id, data):
     if MATCHING_FILES:
         with open(REDDIT_FILENAME, "a+") as file:
-            file.write(unique_id + ";")
-            file.write(";".join(map(str, data)) + "\n")
+            file.write(unique_id + ";" + ';'.join(f"{value}" for key, value in data.items()) + "\n")
     else:
         with open(f"reddit-{PROG_START_TIME}.txt", "a+") as file:
-            file.write(unique_id + ";")
-            file.write(";".join(map(str, data)) + "\n")
+            file.write(unique_id + ";" + ';'.join(f"{value}" for key, value in data.items()) + "\n")
 
 
 def read_data_from_file():
     data = []
     try:
-        with open(os.path.join(BASE_DIR, REDDIT_FILENAME), "r") as file:
-            for line in file:
-                data.append(line.strip().split(';'))
+        if REDDIT_FILENAME is not None:
+            with open(REDDIT_FILENAME, "r") as file:
+                for line in file:
+                    data.append(line.strip().split(';'))
     except FileNotFoundError:
         return None
     return data
@@ -74,104 +77,128 @@ def write_error_response(handler, status, message):
 
 
 class RequestHandler(BaseHTTPRequestHandler):
+    routes = []
 
-    def if_no_reddit_file(self):
-        if not MATCHING_FILES:
-            write_error_response(self, 404, 'No matching files found')
-            return
+    @classmethod
+    def add_route(cls, route, method, handler_method):
+        cls.routes.append((route, method, handler_method))
+
+    def route_request(self):
+
+        parsed_path = urlparse(self.path)
+        path_components = parsed_path.path.split('/')
+        method = self.command
+        for route, route_method, handler_method in self.routes:
+            route_components = route.split('/')
+            if len(path_components) == len(route_components) and method == route_method:
+                data = {}
+                for i, component in enumerate(route_components):
+                    if component.startswith('{') and component.endswith('}'):
+                        data[component[1:-1]] = path_components[i]
+                    elif component != path_components[i]:
+                        break
+                else:
+                    handler_function = getattr(self, handler_method)
+                    handler_function(data)
+                    return
+        write_error_response(self, 404, 'Endpoint not found')
 
     def do_POST(self):
-        if self.path == '/posts/':
-            content_length = int(self.headers['Content-Length'])
-            post_data = self.rfile.read(content_length)
-            unique_id = uuid.uuid1().hex[:32]
-            decoded_data = json.loads(post_data.decode())
-            if not is_valid_post_data(decoded_data):
-                write_error_response(self, 400, 'Invalid data format')
-                return
-            data_read = read_data_from_file()
-            if data_read is not None:
-                existing_ids = {item[0] for item in data_read}
-                if unique_id not in existing_ids:
-                    write_to_file(unique_id, decoded_data)
-                    num_of_rows = len(existing_ids) + 1
-                    set_headers(self, 201)
-                    self.wfile.write(json.dumps({'UNIQUE_ID': num_of_rows}).encode())
-                else:
-                    write_error_response(self, 409, 'Duplicate UNIQUE_ID')
-            else:
-                write_to_file(unique_id, decoded_data)
-        else:
-            write_error_response(self, 404, 'Endpoint not found')
+        self.route_request()
 
     def do_GET(self):
-        parsed_path = urlparse(self.path)
-        path_components = parsed_path.path.split('/')
-        if len(path_components) == 4 and path_components[1] == 'posts':
-            unique_id = path_components[2]
-            set_headers(self, 200)
-            data_read = read_data_from_file()
-            post_data = next((post for post in data_read if post[0] == unique_id), None)
-
-            if post_data:
-                response = {'data': [post_data]}
-                self.wfile.write(json.dumps(response).encode('utf-8'))
-            else:
-                write_error_response(self, 404, 'UNIQUE_ID not found')
-
-        elif self.path == '/posts/':
-            set_headers(self, 200)
-            data_read = read_data_from_file()
-            response = {'data': data_read}
-            self.wfile.write(json.dumps(response).encode('utf-8'))
-        else:
-            write_error_response(self, 404, 'Endpoint not found')
+        self.route_request()
 
     def do_DELETE(self):
-        if self.path.startswith('/posts/'):
-            self.if_no_reddit_file()
-            data_read = read_data_from_file()
-            unique_id = self.path.split('/')[2]
-            data = [post for post in data_read if post[0] != unique_id]
-            with open(REDDIT_FILENAME, "w") as file:
-                for item in data:
-                    file.write(";".join(map(str, item)) + "\n")
-
-            set_headers(self, 204)
-            self.wfile.write(json.dumps({'message': 'Resource deleted successfully'}).encode())
-        else:
-            write_error_response(self, 404, 'Endpoint not found')
+        self.route_request()
 
     def do_PUT(self):
+        self.route_request()
+
+    def rewrite_data_to_file(self, data_read):
+        with open(REDDIT_FILENAME, "w") as file:
+            for item in data_read:
+                file.write(";".join(map(str, item)) + "\n")
+
+    def create_post(self, data):
+        # Handler for creating a post
+        content_length = int(self.headers['Content-Length'])
+        post_data = self.rfile.read(content_length)
+        unique_id = uuid.uuid1().hex[:32]
+        decoded_data = json.loads(post_data.decode())
+        if not is_valid_data(decoded_data):
+            write_error_response(self, 400, 'Invalid data format')
+            return
+
+        data_read = read_data_from_file()
+        if data_read is not None:
+            existing_ids = {item[0] for item in data_read}
+            if unique_id not in existing_ids:
+                write_to_file(unique_id, decoded_data)
+                num_of_rows = len(existing_ids) + 1
+                set_headers(self, 201)
+                self.wfile.write(json.dumps({'UNIQUE_ID': num_of_rows}).encode())
+            else:
+                write_error_response(self, 409, 'Duplicate UNIQUE_ID')
+        else:
+            write_to_file(unique_id, decoded_data)
+
+    def get_all_posts(self, data):
+        set_headers(self, 200)
+        data_read = read_data_from_file()
+        response = {'data': data_read}
+        self.wfile.write(json.dumps(response).encode('utf-8'))
+
+    def get_post(self, data):
+        unique_id = data.get('unique_id')
+        set_headers(self, 200)
+        data_read = read_data_from_file()
+        post_data = next((post for post in data_read if post[0] == unique_id), None)
+
+        if post_data:
+            response = {'data': [post_data]}
+            self.wfile.write(json.dumps(response).encode())
+        else:
+            write_error_response(self, 404, 'UNIQUE_ID not found')
+
+    def delete_post(self, data):
         parsed_path = urlparse(self.path)
         path_components = parsed_path.path.split('/')
-        if len(path_components) == 4 and path_components[1] == 'posts':
-            unique_id = path_components[2]
-
-            content_length = int(self.headers['Content-Length'])
-            put_data = self.rfile.read(content_length)
-            data_read = read_data_from_file()
-
-            post_data_index = next((index for index, post in enumerate(data_read) if post[0] == unique_id),
-                                   None)
-            if post_data_index is not None:
-                decoded_data = json.loads(put_data.decode())
-                print(decoded_data)
-                if not is_valid_post_data(decoded_data):
-                    write_error_response(self, 400, 'Invalid data format')
-                    return
-                data_read[post_data_index] = [unique_id] + decoded_data
-                self.if_no_reddit_file()
-                with open(REDDIT_FILENAME, "w") as file:
-                    for item in data_read:
-                        file.write(";".join(map(str, item)) + "\n")
-
-                set_headers(self, 200)
-                self.wfile.write(json.dumps({'message': 'Resource updated successfully'}).encode())
-            else:
-                write_error_response(self, 404, 'UNIQUE_ID not found')
+        unique_id = path_components[-2]
+        data_read = read_data_from_file()
+        data = [post for post in data_read if post[0] != unique_id]
+        if data_read != data:
+            self.rewrite_data_to_file(data)
+            set_headers(self, 204)
+            self.wfile.write(json.dumps({'message': 'Resource deleted successfully'}).encode('utf-8'))
         else:
-            write_error_response(self, 404, 'Endpoint not found')
+            write_error_response(self, 404, 'UNIQUE_ID not found')
+
+    def update_post(self, data):
+        unique_id = data.get('unique_id')
+        content_length = int(self.headers['Content-Length'])
+        put_data = self.rfile.read(content_length)
+        data_read = read_data_from_file()
+        post_data_index = next((index for index, post in enumerate(data_read) if post[0] == unique_id), None)
+        if post_data_index is not None:
+            decoded_data = json.loads(put_data.decode())
+            if not is_valid_data(decoded_data):
+                write_error_response(self, 400, 'Invalid data format')
+                return
+            with open(REDDIT_FILENAME, "a+") as file:
+                file.write(unique_id + ";" + ';'.join(f"{value}" for key, value in decoded_data.items()) + "\n")
+            set_headers(self, 200)
+            self.wfile.write(json.dumps({'message': 'Resource updated successfully'}).encode())
+        else:
+            write_error_response(self, 404, 'UNIQUE_ID not found')
+
+
+RequestHandler.add_route('/posts/', 'POST', 'create_post')
+RequestHandler.add_route('/posts/', 'GET', 'get_all_posts')
+RequestHandler.add_route('/posts/{unique_id}/', 'GET', 'get_post')
+RequestHandler.add_route('/posts/{unique_id}/', 'DELETE', 'delete_post')
+RequestHandler.add_route('/posts/{unique_id}/', 'PUT', 'update_post')
+# RequestHandler.add_route('/new_endpoint/', 'POST', 'function_name_for_handling_endpoint')
 
 
 def run_server():
