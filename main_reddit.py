@@ -92,7 +92,7 @@ def does_post_has_restrictions(soup: BeautifulSoup):
 # Gathering required data from posts and returning num_of_posts
 def get_remaining_posts_num(posts_url: str, number_of_posts: int, file_name: str):
 
-    try:
+      try:
         result = requests.get(url=posts_url, headers=REQUEST_HEADERS, timeout=10)
     except requests.exceptions.Timeout:
         logger.error("TIMED OUT doing posts_url_request")
@@ -103,7 +103,7 @@ def get_remaining_posts_num(posts_url: str, number_of_posts: int, file_name: str
     for user_post_data in user_info.find_all(SHREDDIT_POST, class_=GET_POST_DATA_FINDALL_CLASS):
         # Add <<post URL>>
         temp_hold_user_data.append(user_post_data["permalink"])
-        # Add <<username>> 
+        # Add <<username>>
         temp_hold_user_data.append(user_post_data["author"])
         post_url_path = REDDIT_WEBPAGE_ADDRESS + user_post_data.find('a', class_='absolute inset-0').get('href')
         try:
@@ -114,7 +114,7 @@ def get_remaining_posts_num(posts_url: str, number_of_posts: int, file_name: str
         logger.info("Loaded posts URL: {}".format(post_url_path))
         soup_post = BeautifulSoup(post_request.text, HTML_PARSER)
         if does_post_has_restrictions(soup_post):
-            print("does post has res")
+
             continue
         post_author_profile_url = REDDIT_WEBPAGE_ADDRESS + soup_post.find('a', class_='author-name').get('href')
         try:
@@ -124,32 +124,33 @@ def get_remaining_posts_num(posts_url: str, number_of_posts: int, file_name: str
             continue
         logger.info("Loaded post author profile URL: {}".format(post_author_profile_url))
         soup_author_profile = BeautifulSoup(author_profile_request.text, HTML_PARSER)
-         # Add <<user cake day>>
-        cake_day = datetime.fromisoformat(soup_author_profile.find('time')['datetime'])
-        temp_hold_user_data.append(str(cake_day)[:10])
+        # Add <<user cake day>>
+        cake_day = soup_author_profile.find('time').get_text(strip=True)
+        temp_hold_user_data.append(str(cake_day))
         find_post_karma = soup_author_profile.find_all("div", class_="flex flex-col min-w-0")
         for karma in find_post_karma:
-            author_comment_karma = karma.find('span', {'data-testid': 'karma-number'}).get_text(strip=True)
-            # Add <<comment karma>>
-            temp_hold_user_data.append(str(author_comment_karma))
-            author_karma = soup_author_profile.find('span', {'data-testid': 'karma-number'}).get_text(
-                strip=True)
             # Add <<post karma>>
-            temp_hold_user_data.append(str(author_karma))
+            author_comment_karma = karma.find('span', {'data-testid': 'karma-number'}).get_text(strip=True)
+            temp_hold_user_data.append(str(author_comment_karma))
+            # Add <<comment karma>>
+            find_comment_karma_tag = soup_author_profile.find_all('span', {'data-testid': 'karma-number'})[1]
+            post_karma = find_comment_karma_tag.get_text(strip=True)
+            temp_hold_user_data.append(str(post_karma))
             break
         # Add <<post date>>
-        temp_hold_user_data.append(user_post_data["created-timestamp"][:23])
+        temp_hold_user_data.append(user_post_data["created-timestamp"])
         # Add <<number of comments>>
         temp_hold_user_data.append(user_post_data["comment-count"])
         # Add <<number of votes>>
         temp_hold_user_data.append(user_post_data.get("score", "N/A"))
+        # Add <<post category>>
+        post_category = user_post_data.find('a', class_='text-18')['href']
+        temp_hold_user_data.append(post_category.strip('/'))
         # Delete duplicate data
         temp_hold_user_data = list(dict.fromkeys(temp_hold_user_data))
         logger.info(NUMBER_OF_POSTS_NEEDED_TO_GET + str(number_of_posts))
         number_of_posts -= 1
-        write_to_file(temp_hold_user_data, file_name)
-        print(temp_hold_user_data)
-        # Exiting the function after collecting the required amount of data:
+        send_data_to_server(temp_hold_user_data)
         if number_of_posts == 0:
             logger.info(NUMBER_OF_POSTS_NEEDED_TO_GET + str(number_of_posts))
             return number_of_posts
