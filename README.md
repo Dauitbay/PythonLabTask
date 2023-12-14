@@ -13,13 +13,13 @@ From web page reddit.com we get:
 
  - post URL;
  - username;
- - user karma;
  - user cake day;
  - post karma;
  - comment karma;
  - post date;
  - number of comments;
  - number of votes;
+ - post category
 
 and save them to file by giving unique_ID to data we collected from web page with file name ***reddit-YYYYMMDD.txt***.
 Every time we run code it will delete previous ***reddit-YYYYMMDD.txt*** and ***my_logfile.log*** files.
@@ -42,6 +42,7 @@ deactivate
 ***1-step:*** Install requirements.txt file using pip and activate venv.
 
 ***2-step:*** Run localserver_8087_for_reddit.py file to run localserver.
+
 ***3-step:*** Run main_reddit_parser.py. You also can run this file using command-line interface ***python main_reddit_parser.py --posts 100 --category top --period month***:
 
 - In --posts : Here we can give number of posts we want to get.
@@ -49,7 +50,21 @@ deactivate
 - In --period : Here we can give period of post if we choose "top" from category (Only in top we have options for period) ---> hour, day, week, month, year, all.
 
 ***4-step:*** Open Postman and do requests like given in description above.
+
 ***5-step:*** When doing request PUT valid data format should be like this:
-***["/r/mildlyinteresting/comments/17yblio/found_bill_of_sale_on_1919_model_t/", "big_d_usernametaken", "11,376", "2023-11-18T17:39:18.726000+0000", "3992", "99290"]***
+
+***{
+"UNIQUE_ID":"0f6c81b4979d11eea616ec5c6800a280",
+"link":"/r/mildlyinteresting/comments/17yblio/found_bill_of_sale_on_1919_model_t/",
+"username":"go_fight_kickass",
+"user_cake_data":"Oct 29, 2016",
+"user_post_karma":"15,606",
+"user_comment_karma":"24,201",
+"post_date":"2023-11-17T16:54:07.275000+0000",
+"number_of_comments":"3461",
+"number_of_votes":"218428",
+"post_category":"Wholesale Moments"
+}***
+
 In Postman select Body -> raw -> JSON.
 
