@@ -11,6 +11,13 @@ def is_valid_data(data):
         except ValueError:
             return False
 
+    def is_valid_month_day_year(date_string):
+        try:
+            datetime.strptime(date_string, "%b %d, %Y")
+            return True
+        except ValueError:
+            return False
+
     def is_valid_integer_string(data_to_validate):
         try:
             int(data_to_validate.replace(',', ''))
@@ -20,8 +27,8 @@ def is_valid_data(data):
     validation_rules = {
         "UNIQUE_ID": lambda x: isinstance(x, str) and len(x) == 32,
         "link": lambda x: isinstance(x, str) and x.startswith("/r/"),
-        "username": lambda x: isinstance(x, str),
-        "user_cake_data": is_valid_date_string,
+        "username":  lambda x: isinstance(x, str) and not x.isdigit(),
+        "user_cake_data":  is_valid_month_day_year,
         "user_post_karma": is_valid_integer_string,
         "user_comment_karma": is_valid_integer_string,
         "post_date": is_valid_date_string,
