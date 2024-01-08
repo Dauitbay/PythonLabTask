@@ -1,22 +1,9 @@
-
+# additional_functions.py for localserver
 from datetime import datetime
-import json
 from consts import (REDDIT_FILENAME, PROG_START_TIME, MATCHING_FILES)
 
 
-def set_headers(handler, status=200, content_type='application/json'):
-    handler.send_response(status)
-    handler.send_header('Content-type', content_type)
-    handler.end_headers()
-
-
-def write_error_response(handler, status, message):
-    set_headers(handler, status)
-    handler.wfile.write(json.dumps({'error': message}).encode())
-
-
 def is_valid_data(data):
-
     def is_valid_date_string(data_to_validate):
         try:
             datetime.strptime(data_to_validate, "%Y-%m-%dT%H:%M:%S.%f%z")
